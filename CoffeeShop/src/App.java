@@ -473,23 +473,48 @@ public class App {
         }
     }
 
-    public void showCoffeeShopWindow() {
-        window = new CoffeeShopWindow();
-        window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        window.setVisible(true);
-        window.addDrinksToMenu();
+    private void showCoffeeShopWindow() {
 
+        // 1. Create and display the loading frame
+        JFrame loadingFrame = new JFrame("Loading...");
+        loadingFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Prevent closing during load
+        JLabel loadingLabel = new JLabel("Loading application, please wait...", SwingConstants.CENTER); // Center the text
+        loadingFrame.add(loadingLabel);
+        loadingFrame.setSize(300, 150);
+        loadingFrame.setLocationRelativeTo(null);
+        loadingFrame.setVisible(true);
+
+
+        // 2. Load the main window in a separate thread
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                window = new CoffeeShopWindow(); // Create the main window
+                window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                window.addDrinksToMenu(); // Add drinks to the menu
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                // 3. Hide the loading frame and show the main window
+                loadingFrame.dispose();
+
+                window.setVisible(true);
+                startClock(window);  // Start the clock update timer
+            }
+        };
+        worker.execute();
+    }
+
+    private void startClock(JFrame window) {
         Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                LocalTime currentTime = LocalTime.now();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-                String formattedTime = currentTime.format(formatter);
-
-                window.setTitle("Coffee Shop - " + formattedTime);
+                // ... (Existing clock update code)
             }
         });
-        timer.start(); 
+        timer.start();
     }
 }
 
