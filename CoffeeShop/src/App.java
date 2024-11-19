@@ -30,9 +30,9 @@ public class App {
     private static final int KEY_SIZE = 256;
     private static final int SALT_LENGTH = 16;
     private static final byte[] SALT = new byte[SALT_LENGTH];
-    private static final String DATABASE_URL = "jdbc:mysql://45.62.14.222:3306/user";
-    private static final String DATABASE_USERNAME = "altan";
-    private static final String DATABASE_PASSWORD = "Pickles5-_";
+    public static final String DATABASE_URL = "jdbc:mysql://45.62.14.171:3306/user";
+    public static final String DATABASE_USERNAME = "altan";
+    public static final String DATABASE_PASSWORD = "Pickles5-_";
 
     public static void main(String[] args) {
         SecureRandom random = new SecureRandom();
@@ -372,11 +372,8 @@ public class App {
     }
 
     private boolean updatePassword(String username, String newPassword) {
-        String url = "jdbc:mysql://45.62.14.222:3306/user";
-        String dbUsername = "altan";
-        String dbPassword = "Pickles5-_";
 
-        try (Connection connection = DriverManager.getConnection(url, dbUsername, dbPassword)) {
+        try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
             String sql = "UPDATE users SET password=? WHERE username=?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, newPassword);
@@ -441,38 +438,32 @@ public class App {
     }
 
     private boolean createNewAccount(String username, String password) {
-        String url = "jdbc:mysql://45.62.14.222:3306/user";
-        String dbUsername = "altan";
-        String dbPassword = "Pickles5-_";
 
-        try (Connection connection = DriverManager.getConnection(url, dbUsername, dbPassword)) {
+        try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
             String sql = "INSERT INTO users (username, password) VALUES (?, ?)";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, password);
 
             int rowsInserted = statement.executeUpdate();
-            return rowsInserted > 0; 
+            return rowsInserted > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
-            return false; 
+            return false;
         }
     }
 
     private boolean authenticate(String username, String password) {
-        String url = "jdbc:mysql://45.62.14.222:3306/user"; 
-        String dbUsername = "altan"; 
-        String dbPassword = "Pickles5-_"; 
 
-        try (Connection connection = DriverManager.getConnection(url, dbUsername, dbPassword)) {
+        try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
             String sql = "SELECT * FROM users WHERE username=? AND password=?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
-            statement.setString(2, password); 
+            statement.setString(2, password);
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next(); 
+                return resultSet.next();
             }
 
         } catch (SQLException e) {

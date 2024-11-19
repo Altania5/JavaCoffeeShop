@@ -3,13 +3,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Ingredients {
-    private Connection connection; // Store the database connection
+    private Connection connection;
 
     public Ingredients(Connection connection) {
         this.connection = connection;
     }
 
-    // Method to check if an ingredient is in stock
     public boolean isInStock(String ingredientName) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT instock FROM user.ingredients WHERE ingredient = ?")) {
@@ -20,13 +19,10 @@ public class Ingredients {
                 }
             }
         } catch (SQLException e) {
-            // e.printStackTrace();
-            // Handle the exception appropriately (e.g., log it, show a message)
         }
-        return false; // Or throw an exception if ingredient not found is an error
+        return false;
     }
 
-    // Method to add a new ingredient to the list
     public void addIngredient(String ingredientName, boolean inStock) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO user.ingredients (ingredient, inStock) VALUES (?, ?)")) {
@@ -34,12 +30,9 @@ public class Ingredients {
             statement.setInt(2, inStock ? 1 : 0);
             statement.executeUpdate();
         } catch (SQLException e) {
-            // e.printStackTrace();
-            // Handle the exception appropriately (e.g., log it, show a message)
         }
     }
 
-    // Method to update the stock status of an ingredient
     public void updateIngredientStock(String ingredientName, boolean inStock) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "UPDATE user.ingredients SET inStock = ? WHERE ingredient = ?")) {
@@ -47,12 +40,9 @@ public class Ingredients {
             statement.setString(2, ingredientName);
             statement.executeUpdate();
         } catch (SQLException e) {
-            // e.printStackTrace();
-            // Handle the exception appropriately (e.g., log it, show a message)
         }
     }
 
-    // Method to get all ingredients and their stock status
     public Map<String, Boolean> getIngredientList() {
         Map<String, Boolean> ingredientList = new HashMap<>();
         try (Statement statement = connection.createStatement();
@@ -63,8 +53,6 @@ public class Ingredients {
                 ingredientList.put(name, inStock);
             }
         } catch (SQLException e) {
-            // e.printStackTrace();
-            // Handle the exception appropriately (e.g., log it, show a message)
         }
         return ingredientList;
     }

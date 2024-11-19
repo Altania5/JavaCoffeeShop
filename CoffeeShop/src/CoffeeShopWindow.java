@@ -13,7 +13,7 @@ import java.util.Map;
 class CoffeeShopWindow extends JFrame {
 
     private Connection connection;
-    private MenuPanel menuPanel; // Store reference to MenuPanel
+    private MenuPanel menuPanel;
     private Ingredients ingredients;
     public Map<Drinks, JPanel> drinkPanelMap;
     private DefaultListModel<String> ingredientListModel;
@@ -21,13 +21,11 @@ class CoffeeShopWindow extends JFrame {
     public CoffeeShopWindow() {
 
                 try {
-            this.connection = DriverManager.getConnection("jdbc:mysql://45.62.14.188:3306/users", "altan", "Pickles5-_");
+                    this.connection = DriverManager.getConnection(App.DATABASE_URL, App.DATABASE_USERNAME, App.DATABASE_PASSWORD);
         } catch (SQLException e) {
             e.printStackTrace();
-            // Handle connection errors appropriately (e.g., display an error message)
         }
 
-        // Now create the Ingredients object, passing the connection
         ingredients = new Ingredients(connection); 
 
         JTabbedPane tabbedPane = new JTabbedPane();
@@ -35,14 +33,13 @@ class CoffeeShopWindow extends JFrame {
         JPanel inventoryPanel = createInventoryPanel(ingredientListModel);
         loadInventory();
         menuPanel = new MenuPanel(ingredients);
-        drinkPanelMap = new HashMap<>(); // Initialize the map
+        drinkPanelMap = new HashMap<>();
     
         setTitle("Coffee Shop");
         setSize(800, 600);
-        setLocationRelativeTo(null); // Center the window
+        setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     
-        // *** Create and add the tabbed pane FIRST ***
         tabbedPane.addTab("Menu", menuPanel);
         tabbedPane.addTab("Inventory", inventoryPanel);
         add(tabbedPane); // Add tabbedPane to the JFrame
@@ -52,12 +49,11 @@ class CoffeeShopWindow extends JFrame {
             setIconImage(icon);
         } catch (IOException e) {
             System.err.println("Error loading icon image: " + e.getMessage());
-            // Handle the error appropriately (e.g., log it, show a message)
         }
     }
 
     private void loadInventory() {
-        File inventoryFile = new File("inventory.txt"); // File to store inventory
+        File inventoryFile = new File("inventory.txt");
 
         if (inventoryFile.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(inventoryFile))) {
@@ -71,12 +67,9 @@ class CoffeeShopWindow extends JFrame {
                     }
                 }
             } catch (IOException e) {
-                // System.err.println("Error loading inventory: " + e.getMessage());
-                // Handle the error appropriately (e.g., log it, show a message)
             }
         }
 
-        // Update the ingredient list in the UI after loading
         updateIngredientList(ingredientListModel); 
     }
 
@@ -90,7 +83,6 @@ class CoffeeShopWindow extends JFrame {
             }
         } catch (IOException e) {
             System.err.println("Error saving inventory: " + e.getMessage());
-            // Handle the error appropriately (e.g., log it, show a message)
         }
     }
 
@@ -105,7 +97,6 @@ class CoffeeShopWindow extends JFrame {
     private JPanel createInventoryPanel(DefaultListModel<String> ingredientListModel) {
         JPanel inventoryPanel = new JPanel(new BorderLayout());
 
-        // Create a list to display ingredients
         for (Map.Entry<String, Boolean> entry : ingredients.getIngredientList().entrySet()) {
             String ingredientStatus = entry.getKey() + " - " + (entry.getValue() ? "In Stock" : "Out of Stock");
             ingredientListModel.addElement(ingredientStatus);
@@ -114,7 +105,6 @@ class CoffeeShopWindow extends JFrame {
         JScrollPane ingredientListScrollPane = new JScrollPane(ingredientList);
         inventoryPanel.add(ingredientListScrollPane, BorderLayout.CENTER);
 
-        // Create buttons for adding and removing ingredients
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton addButton = new JButton("Add Ingredient");
         JButton removeButton = new JButton("Remove Ingredient");
@@ -122,14 +112,13 @@ class CoffeeShopWindow extends JFrame {
         buttonPanel.add(removeButton);
         inventoryPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Add action listeners to buttons
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String newIngredient = ingredientList.getSelectedValue();
                 if (newIngredient != null) {
                     String ingredientNames = newIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientNames, true); // Add as in stock by default
+                    ingredients.updateIngredientStock(ingredientNames, true);
                     updateIngredientList(ingredientListModel);
                     updateMenu();
                 }
@@ -142,7 +131,7 @@ class CoffeeShopWindow extends JFrame {
                 String selectedIngredient = ingredientList.getSelectedValue();
                 if (selectedIngredient != null) {
                     String ingredientName = selectedIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientName, false); // Set to out of stock
+                    ingredients.updateIngredientStock(ingredientName, false);
                     updateIngredientList(ingredientListModel);
                     updateMenu();
                 }
@@ -161,8 +150,7 @@ class CoffeeShopWindow extends JFrame {
     }
 
     private void updateMenu() {
-        menuPanel.removeAll(); // Remove all existing drink panels
-        // Add back drinks that can be made
+        menuPanel.removeAll();
         for (Drinks drink : Drinks.getAllDrinks()) {
             Drinks.CheckResult result = drink.canMake(ingredients);
             if (result.canMake) {
