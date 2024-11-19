@@ -53,25 +53,19 @@ class CoffeeShopWindow extends JFrame {
     }
 
     private void loadInventory() {
-        File inventoryFile = new File("inventory.txt");
-
-        if (inventoryFile.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(inventoryFile))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split(",");
-                    if (parts.length == 2) {
-                        String ingredientName = parts[0];
-                        boolean inStock = Boolean.parseBoolean(parts[1]);
-                        ingredients.addIngredient(ingredientName, inStock);
-                    }
-                }
-            } catch (IOException e) {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM user.ingredients")) {
+            while (resultSet.next()) {
+                String ingredientName = resultSet.getString("ingredients"); // Corrected column name
+                boolean inStock = resultSet.getInt("inStock") == 1;
+                ingredients.addIngredient(ingredientName, inStock);
             }
+        } catch (SQLException e) {
+            System.err.println("Error loading inventory from database: " + e.getMessage());
         }
-
-        updateIngredientList(ingredientListModel); 
-    }
+        updateIngredientList(ingredientListModel);
+}
+    
 
     private void saveInventory() {
         File inventoryFile = new File("inventory.txt");
@@ -96,50 +90,58 @@ class CoffeeShopWindow extends JFrame {
 
     private JPanel createInventoryPanel(DefaultListModel<String> ingredientListModel) {
         JPanel inventoryPanel = new JPanel(new BorderLayout());
-
-        for (Map.Entry<String, Boolean> entry : ingredients.getIngredientList().entrySet()) {
-            String ingredientStatus = entry.getKey() + " - " + (entry.getValue() ? "In Stock" : "Out of Stock");
-            ingredientListModel.addElement(ingredientStatus);
-        }
+    
+        updateIngredientList(ingredientListModel); // Load initial data
+    
         JList<String> ingredientList = new JList<>(ingredientListModel);
         JScrollPane ingredientListScrollPane = new JScrollPane(ingredientList);
         inventoryPanel.add(ingredientListScrollPane, BorderLayout.CENTER);
 
+        loadInventory();
+
+        menuPanel = new MenuPanel(ingredients);
+        drinkPanelMap = new HashMap<>();
+    
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton addButton = new JButton("Add Ingredient");
         JButton removeButton = new JButton("Remove Ingredient");
-        buttonPanel.add(addButton);
-        buttonPanel.add(removeButton);
-        inventoryPanel.add(buttonPanel, BorderLayout.SOUTH);
-
+    
+    
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String newIngredient = ingredientList.getSelectedValue();
-                if (newIngredient != null) {
-                    String ingredientNames = newIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientNames, true);
-                    updateIngredientList(ingredientListModel);
-                    updateMenu();
+                String selectedIngredient = ingredientList.getSelectedValue();
+                if (selectedIngredient != null) {
+                    String ingredientName = selectedIngredient.split(" - ")[0];
+                    ingredients.updateIngredientStock(ingredientName, true); // Update in DB
+                    updateIngredientList(ingredientListModel); // Refresh the list
+                    updateMenu(); // Update menu based on inventory
                 }
             }
         });
-
+    
         removeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String selectedIngredient = ingredientList.getSelectedValue();
                 if (selectedIngredient != null) {
                     String ingredientName = selectedIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientName, false);
-                    updateIngredientList(ingredientListModel);
-                    updateMenu();
+                    ingredients.updateIngredientStock(ingredientName, false); // Update in DB
+                    updateIngredientList(ingredientListModel);  // Refresh the list
+                    updateMenu();  // Update menu based on inventory
                 }
             }
         });
-
+    
+    
+        buttonPanel.add(addButton);
+        buttonPanel.add(removeButton);
+        inventoryPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
         return inventoryPanel;
     }
+    
+    
 
     private void updateIngredientList(DefaultListModel<String> model) {
         model.clear();
@@ -150,15 +152,16 @@ class CoffeeShopWindow extends JFrame {
     }
 
     private void updateMenu() {
-        menuPanel.removeAll();
-        for (Drinks drink : Drinks.getAllDrinks()) {
-            Drinks.CheckResult result = drink.canMake(ingredients);
-            if (result.canMake) {
-                menuPanel.addDrink(drink); 
-            }
+        menuPanel.removeAll(); // Clear existing menu items
+    
+        // Add ALL drinks back to the menu, letting the canMake logic handle display
+        for (Drinks drink : Drinks.getAllDrinks()) { 
+            menuPanel.addDrink(drink); 
         }
+    
         menuPanel.revalidate();
         menuPanel.repaint();
         saveInventory();
     }
+    
 }

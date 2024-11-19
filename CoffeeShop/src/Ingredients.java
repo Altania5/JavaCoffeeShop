@@ -11,7 +11,7 @@ public class Ingredients {
 
     public boolean isInStock(String ingredientName) {
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT instock FROM user.ingredients WHERE ingredient = ?")) {
+                "SELECT instock FROM user.ingredients WHERE ingredients = ?")) {
             statement.setString(1, ingredientName);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -25,7 +25,7 @@ public class Ingredients {
 
     public void addIngredient(String ingredientName, boolean inStock) {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO user.ingredients (ingredient, inStock) VALUES (?, ?)")) {
+                "INSERT INTO user.ingredients (ingredients, inStock) VALUES (?, ?)")) {
             statement.setString(1, ingredientName);
             statement.setInt(2, inStock ? 1 : 0);
             statement.executeUpdate();
@@ -35,7 +35,7 @@ public class Ingredients {
 
     public void updateIngredientStock(String ingredientName, boolean inStock) {
         try (PreparedStatement statement = connection.prepareStatement(
-                "UPDATE user.ingredients SET inStock = ? WHERE ingredient = ?")) {
+                "UPDATE user.ingredients SET inStock = ? WHERE ingredients = ?")) {
             statement.setInt(1, inStock ? 1 : 0);
             statement.setString(2, ingredientName);
             statement.executeUpdate();
@@ -48,7 +48,7 @@ public class Ingredients {
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT * FROM user.ingredients")) {
             while (resultSet.next()) {
-                String name = resultSet.getString("ingredient");
+                String name = resultSet.getString("ingredients");
                 boolean inStock = resultSet.getInt("inStock") == 1;
                 ingredientList.put(name, inStock);
             }

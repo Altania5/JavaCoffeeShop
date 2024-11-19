@@ -1,0 +1,13 @@
+Espresso,true
+Brown Sugar Syrup,true
+Oat Milk,true
+Cold Brew,true
+Salted Caramel Syrup,true
+Lemonade,true
+Vanilla Syrup,true
+Peach Consentrate,true
+Pumpkin Spice Syrup,true
+Cinnamon,true
+Green Tea,true
+Heavy Cream,true
+Milk,true
