@@ -511,7 +511,11 @@ public class App {
         Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // ... (Existing clock update code)
+                LocalTime currentTime = LocalTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                String formattedTime = currentTime.format(formatter);
+    
+                window.setTitle("Coffee Shop - " + formattedTime);
             }
         });
         timer.start();
