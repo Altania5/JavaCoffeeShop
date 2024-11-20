@@ -1,10 +1,19 @@
+White Chocolate,false
+Blonde Espresso,true
 Espresso,true
 Brown Sugar Syrup,true
+Mocha,true
 Oat Milk,true
+Olive Oil,true
+Silk Milk,false
+Chai,true
 Cold Brew,true
+Vodka,true
 Salted Caramel Syrup,true
 Lemonade,true
+Almond Milk,false
 Vanilla Syrup,true
+Half and Half,false
 Peach Consentrate,true
 Pumpkin Spice Syrup,true
 Cinnamon,true

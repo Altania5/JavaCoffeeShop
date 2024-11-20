@@ -71,7 +71,7 @@ class CoffeeShopWindow extends JFrame {
         File inventoryFile = new File("inventory.txt");
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(inventoryFile))) {
-            for (Map.Entry<String, Boolean> entry : ingredients.getIngredientList().entrySet()) {
+            for (Map.Entry<String, Ingredients.IngredientData> entry : ingredients.getIngredientList().entrySet()) {
                 writer.write(entry.getKey() + "," + entry.getValue());
                 writer.newLine();
             }
@@ -105,6 +105,7 @@ class CoffeeShopWindow extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton addButton = new JButton("Add Ingredient");
         JButton removeButton = new JButton("Remove Ingredient");
+        JButton createNewButton = new JButton("Create New Ingredient");
     
     
         addButton.addActionListener(new ActionListener() {
@@ -113,7 +114,7 @@ class CoffeeShopWindow extends JFrame {
                 String selectedIngredient = ingredientList.getSelectedValue();
                 if (selectedIngredient != null) {
                     String ingredientName = selectedIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientName, true); // Update in DB
+                    ingredients.updateIngredientStock(ingredientName, true, ingredients.getType()); // Update in DB
                     updateIngredientList(ingredientListModel); // Refresh the list
                     updateMenu(); // Update menu based on inventory
                 }
@@ -126,27 +127,66 @@ class CoffeeShopWindow extends JFrame {
                 String selectedIngredient = ingredientList.getSelectedValue();
                 if (selectedIngredient != null) {
                     String ingredientName = selectedIngredient.split(" - ")[0];
-                    ingredients.updateIngredientStock(ingredientName, false); // Update in DB
+                    ingredients.updateIngredientStock(ingredientName, false, ingredients.getType()); // Update in DB
                     updateIngredientList(ingredientListModel);  // Refresh the list
                     updateMenu();  // Update menu based on inventory
                 }
+            }
+        });
+
+        createNewButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showCreateIngredientDialog();
             }
         });
     
     
         buttonPanel.add(addButton);
         buttonPanel.add(removeButton);
+        buttonPanel.add(createNewButton);
         inventoryPanel.add(buttonPanel, BorderLayout.SOUTH);
     
         return inventoryPanel;
     }
     
+    private void showCreateIngredientDialog() {
+        JTextField ingredientNameField = new JTextField(20);
+        JCheckBox inStockCheckBox = new JCheckBox("In Stock");
+        //Ingredient Type Combo box
+        String[] ingredientTypes = {"Espresso Bean", "Milk", "Syrup", "Other"}; // Replace with your types
+        JComboBox<String> typeComboBox = new JComboBox<>(ingredientTypes);
+    
+        Object[] message = {
+                "Ingredient Name:", ingredientNameField,
+                "In Stock:", inStockCheckBox,
+                "Type:", typeComboBox
+        };
+    
+        int option = JOptionPane.showConfirmDialog(this, message, "Create New Ingredient", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            String ingredientName = ingredientNameField.getText();
+            boolean inStock = inStockCheckBox.isSelected();
+            String type = (String) typeComboBox.getSelectedItem(); // Get selected type
+    
+            if (!ingredientName.isEmpty()) {
+                ingredients.addIngredient(ingredientName, inStock, type); // Add type to addIngredient call
+                updateIngredientList(ingredientListModel);
+                updateMenu(); // Important!
+            } else {
+                // ... (Error message for empty name)
+            }
+        }
+    }
     
 
     private void updateIngredientList(DefaultListModel<String> model) {
         model.clear();
-        for (Map.Entry<String, Boolean> entry : ingredients.getIngredientList().entrySet()) {
-            String ingredientStatus = entry.getKey() + " - " + (entry.getValue() ? "In Stock" : "Out of Stock");
+        for (Map.Entry<String, Ingredients.IngredientData> entry : ingredients.getIngredientList().entrySet()) {
+            String ingredientStatus = String.format("%s - %s - %s", 
+                                                    entry.getKey(), 
+                                                    entry.getValue().isInStock() ? "In Stock" : "Out of Stock",  // Use getter
+                                                    entry.getValue().getType());  // Use getter
             model.addElement(ingredientStatus);
         }
     }

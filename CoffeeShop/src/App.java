@@ -474,38 +474,37 @@ public class App {
     }
 
     private void showCoffeeShopWindow() {
-
-        // 1. Create and display the loading frame
         JFrame loadingFrame = new JFrame("Loading...");
-        loadingFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Prevent closing during load
-        JLabel loadingLabel = new JLabel("Loading application, please wait...", SwingConstants.CENTER); // Center the text
+        loadingFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        JLabel loadingLabel = new JLabel("Loading application, please wait...", SwingConstants.CENTER);
         loadingFrame.add(loadingLabel);
         loadingFrame.setSize(300, 150);
         loadingFrame.setLocationRelativeTo(null);
         loadingFrame.setVisible(true);
-
-
-        // 2. Load the main window in a separate thread
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+    
+    
+        SwingWorker<CoffeeShopWindow, Void> worker = new SwingWorker<>() { // Return CoffeeShopWindow
             @Override
-            protected Void doInBackground() throws Exception {
-                window = new CoffeeShopWindow(); // Create the main window
-                window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                window.addDrinksToMenu(); // Add drinks to the menu
-                return null;
+            protected CoffeeShopWindow doInBackground() throws Exception {  // Correct return type
+                return new CoffeeShopWindow(); // Create and RETURN the window
             }
-
+    
             @Override
             protected void done() {
-                // 3. Hide the loading frame and show the main window
                 loadingFrame.dispose();
-
-                window.setVisible(true);
-                startClock(window);  // Start the clock update timer
+                try {
+                    window = get(); // Get the created window  ***KEY CHANGE***
+                    window.setVisible(true); // Now window is initialized
+                    startClock(window);
+                } catch (Exception e) { // Handle potential exceptions
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error initializing application", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         };
         worker.execute();
     }
+    
 
     private void startClock(JFrame window) {
         Timer timer = new Timer(1000, new ActionListener() {
