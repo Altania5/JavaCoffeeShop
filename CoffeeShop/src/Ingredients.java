@@ -26,20 +26,12 @@ public class Ingredients {
 
     public Ingredients(Connection connection) {
         this.connection = connection;
+        this.ingredientMap = new HashMap<>();
     }
 
     public boolean isInStock(String ingredientName) {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT instock FROM user.ingredients WHERE ingredients = ?")) {
-            statement.setString(1, ingredientName);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt("inStock") == 1;
-                }
-            }
-        } catch (SQLException e) {
-        }
-        return false;
+        IngredientData data = ingredientMap.get(ingredientName);
+        return data != null && data.isInStock();
     }
 
     public void addIngredient(String ingredientName, boolean inStock) {

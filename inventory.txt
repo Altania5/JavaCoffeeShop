@@ -1,22 +1,24 @@
-White Chocolate,false
-Blonde Espresso,true
-Espresso,true
-Brown Sugar Syrup,true
-Mocha,true
-Oat Milk,true
-Olive Oil,true
-Silk Milk,false
-Chai,true
-Cold Brew,true
-Vodka,true
-Salted Caramel Syrup,true
-Lemonade,true
-Almond Milk,false
-Vanilla Syrup,true
-Half and Half,false
-Peach Consentrate,true
-Pumpkin Spice Syrup,true
-Cinnamon,true
-Green Tea,true
-Heavy Cream,true
-Milk,true
+White Chocolate,Ingredients$IngredientData@3bcc84c
+Dark Espresso,Ingredients$IngredientData@1c75465d
+Blonde Espresso,Ingredients$IngredientData@7cefc1e
+Coconut Milk,Ingredients$IngredientData@12837fba
+Espresso,Ingredients$IngredientData@77183b0e
+Brown Sugar Syrup,Ingredients$IngredientData@4169cc1e
+Mocha,Ingredients$IngredientData@31b7f621
+Oat Milk,Ingredients$IngredientData@38402102
+Olive Oil,Ingredients$IngredientData@eb6bd4f
+Silk Milk,Ingredients$IngredientData@13099bb
+Chai,Ingredients$IngredientData@fb86142
+Cold Brew,Ingredients$IngredientData@36490986
+Vodka,Ingredients$IngredientData@d2e96c5
+Salted Caramel Syrup,Ingredients$IngredientData@8562b9a
+Lemonade,Ingredients$IngredientData@44a8f9a3
+Almond Milk,Ingredients$IngredientData@3ad3dd89
+Vanilla Syrup,Ingredients$IngredientData@4332eca8
+Half and Half,Ingredients$IngredientData@7a0105af
+Peach Consentrate,Ingredients$IngredientData@79e79ead
+Dairy Milk,Ingredients$IngredientData@5dfc3b8d
+Pumpkin Spice Syrup,Ingredients$IngredientData@9ffcb36
+Cinnamon,Ingredients$IngredientData@7b219bdb
+Green Tea,Ingredients$IngredientData@3e7660e4
+Heavy Cream,Ingredients$IngredientData@2ea04f4
