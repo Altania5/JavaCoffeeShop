@@ -42,23 +42,17 @@ class CoffeeShopWindow extends JFrame {
 
         loadInventory();
 
-        menuPanel = new MenuPanel(ingredients);
+        menuPanel = new MenuPanel(ingredients, this);
         drinkPanelMap = new HashMap<>();
         drinksList = new ArrayList<>();
-
-        drinksList.add(new VanillaLatte(4.75, ingredients));
-        drinksList.add(new Bose(6.50, ingredients));
-        drinksList.add(new SCCB(4.50, ingredients));
-        drinksList.add(new PSL(4.75, ingredients));
-        drinksList.add(new PEGTL(2.50, ingredients));
-
         drinksList = loadDrinksFromDatabase();
+
         Drinks.allDrinks.clear();
         Drinks.allDrinks.addAll(drinksList);
+        addDrinksToMenu();
+        updateMenu();
 
         addDrinksToDatabase();
-
-        addDrinksToMenu();
 
         JTabbedPane tabbedPane = new JTabbedPane();
         JPanel inventoryPanel = createInventoryPanel();
@@ -81,10 +75,66 @@ class CoffeeShopWindow extends JFrame {
             System.err.println("Error loading icon image: " + e.getMessage());
         }
         ingredientTable.setDefaultRenderer(Object.class, cellRenderer);
-        updateMenu();
     }
 
-    
+    // CoffeeShopWindow.java
+
+public Ingredients getIngredients() {  // Add this getter
+    return ingredients;
+}
+
+
+    private void addDrinksToMenu() {
+        for (Drinks drink : drinksList) { //Add drinks from the database
+            menuPanel.addDrink(drink);
+        }
+    }
+
+    private List<Drinks> loadDrinksFromDatabase() {
+        List<Drinks> drinks = new ArrayList<>();
+
+        try (Connection connection = DriverManager.getConnection(App.DATABASE_URL, App.DATABASE_USERNAME, App.DATABASE_PASSWORD);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM drinks")) {
+
+            while (resultSet.next()) {
+                int drinkId = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double price = resultSet.getDouble("price");
+                int rating = resultSet.getInt("rating");
+                int sweetness = resultSet.getInt("sweetness");
+                Drinks.DrinkType type = Drinks.DrinkType.valueOf(resultSet.getString("drink_type"));
+
+                // Load ingredients for this drink
+                Map<String, Double> ingredients = loadDrinkIngredients(connection, drinkId);
+
+                Drinks drink = new Drinks(name, ingredients, "", price, rating, sweetness, type);
+                drinks.add(drink);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle the exception appropriately
+        }
+
+        return drinks;
+    }
+
+    private Map<String, Double> loadDrinkIngredients(Connection connection, int drinkId) throws SQLException {
+        Map<String, Double> ingredients = new HashMap<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT ingredient_name, quantity FROM drink_ingredients WHERE drink_id = ?")) {
+
+            statement.setInt(1, drinkId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String ingredientName = resultSet.getString("ingredient_name");
+                    double quantity = resultSet.getDouble("quantity");
+                    ingredients.put(ingredientName, quantity);
+                }
+            }
+        }
+        return ingredients;
+    }
 
     private JPanel createInventoryPanel() {
         JPanel inventoryPanel = new JPanel(new BorderLayout());
@@ -579,14 +629,6 @@ class CoffeeShopWindow extends JFrame {
             System.err.println("Error saving inventory: " + e.getMessage());
         }
     }
-
-    public void addDrinksToMenu() {
-        menuPanel.addDrink(new VanillaLatte(4.75, ingredients));
-        menuPanel.addDrink(new Bose(6.50, ingredients));
-        menuPanel.addDrink(new SCCB(4.50, ingredients));
-        menuPanel.addDrink(new PSL(4.75, ingredients));
-        menuPanel.addDrink(new PEGTL(2.50, ingredients));
-    }
     
     private void updateInventoryTable() {
         // Get the updated ingredients map
@@ -597,17 +639,8 @@ class CoffeeShopWindow extends JFrame {
         ingredientTable.repaint(); // Needed to refresh the display
     }
 
-    private void updateMenu() {
-        menuPanel.removeAll(); // Clear existing menu items
-    
-        // Add ALL drinks back to the menu, letting the canMake logic handle display
-        for (Drinks drink : Drinks.getAllDrinks()) { 
-            menuPanel.addDrink(drink); 
-        }
-    
-        menuPanel.revalidate();
-        menuPanel.repaint();
-        saveInventory();
+    private void updateMenu() { 
+        menuPanel.updateMenu(ingredients); // Call MenuPanel's updateMenu
     }
     
 }
