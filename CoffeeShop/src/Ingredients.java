@@ -27,6 +27,22 @@ public class Ingredients {
     public Ingredients(Connection connection) {
         this.connection = connection;
         this.ingredientMap = new HashMap<>();
+        loadIngredientsFromDatabase();
+    }
+
+    private void loadIngredientsFromDatabase() {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT ingredients, type, inStock FROM user.ingredients")) {
+
+            while (resultSet.next()) {
+                String name = resultSet.getString("ingredients");
+                boolean inStock = resultSet.getInt("inStock") == 1;
+                String type = resultSet.getString("type");
+                ingredientMap.put(name, new IngredientData(inStock, type)); // Use the member variable
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle the exception appropriately (log it, show a message, etc.)
+        }
     }
 
     public boolean isInStock(String ingredientName) {
@@ -54,6 +70,8 @@ public class Ingredients {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        
+        ingredientMap.get(ingredientName).inStock = inStock;
     }
 
     public void addIngredient(String ingredientName, boolean inStock, String type) { // Add type parameter

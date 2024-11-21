@@ -19,7 +19,7 @@ public class PSL extends Drinks {
     private static Map<String, Double> createIngredients() {
         Map<String, Double> ingredients = new HashMap<>();
         ingredients.put("Espresso", 0.075); // 50ml espresso
-        ingredients.put("Milk", 0.02);     // 200ml milk
+        ingredients.put("Dairy Milk", 0.02);     // 200ml milk
         ingredients.put("Pumpkin Spice Syrup", 0.05);     // 200ml milk
         return ingredients;
     }

@@ -57,6 +57,53 @@ class IngredientTableModel extends AbstractTableModel{
         }
     }
 
+    public void updateIngredients(Map<String, Ingredients.IngredientData> ingredientMap) {
+        this.inStockMap.clear();
+        this.data.clear();  // Clear existing data
+        this.columnNames.clear(); // Also, clear existing column names
+
+        Map<String, List<String>> ingredientsByType = new HashMap<>();
+
+            // Rebuild ingredientsByType and columnNames (same as before)
+    for (Ingredients.IngredientData ingredientData : ingredientMap.values()) {
+        String type = ingredientData.getType();
+        if (!ingredientsByType.containsKey(type)) {
+            ingredientsByType.put(type, new ArrayList<>());
+            columnNames.add(type);
+        }
+    }
+    for (Map.Entry<String, Ingredients.IngredientData> entry : ingredientMap.entrySet()) {
+        String ingredientName = entry.getKey();
+        String ingredientType = entry.getValue().getType();
+        boolean isInStock = entry.getValue().isInStock();
+
+        if (ingredientsByType.containsKey(ingredientType)) {
+            ingredientsByType.get(ingredientType).add(ingredientName);
+            inStockMap.put(ingredientName, isInStock);
+        }
+    }
+
+    int maxRows = 0;
+    for (List<String> ingredients : ingredientsByType.values()) {
+        maxRows = Math.max(maxRows, ingredients.size());
+    }
+
+
+    data.clear(); //Clear the data again before rebuilding
+
+    for (int i = 0; i < maxRows; i++) {
+        List<String> rowData = new ArrayList<>();
+        for (String type : columnNames) {  // Iterate by column name (type)
+            List<String> ingredientsOfType = ingredientsByType.get(type);
+            String ingredient = (ingredientsOfType != null && i < ingredientsOfType.size()) ? ingredientsOfType.get(i) : "";
+            rowData.add(ingredient);
+        }
+        data.add(rowData);
+    }
+
+    fireTableDataChanged();
+    }
+
     public Map<String, Boolean> getInStockMap() {
         return inStockMap;
     }

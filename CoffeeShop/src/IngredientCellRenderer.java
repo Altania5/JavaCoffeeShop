@@ -6,23 +6,25 @@ import java.util.Map;
 public class IngredientCellRenderer extends DefaultTableCellRenderer {
 
     private Map<String, Boolean> inStockMap;
+    private IngredientTableModel tableModel;
 
-    public IngredientCellRenderer(Map<String, Boolean> inStockMap) {
-        this.inStockMap = inStockMap;
+    public IngredientCellRenderer(IngredientTableModel tableModel) {  // Constructor changed!
+        this.tableModel = tableModel;
     }
+    
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        // Set text color based on in-stock status
+        // Access the inStockMap DIRECTLY from the tableModel
         if (value != null && !value.equals("")) {
             String ingredientName = (String) value;
-            if (inStockMap.containsKey(ingredientName)) {
-                if (inStockMap.get(ingredientName)) {
-                    cellComponent.setForeground(Color.BLACK); // In stock
+            if (tableModel.getInStockMap().containsKey(ingredientName)) { // Accessing via tableModel
+                if (tableModel.getInStockMap().get(ingredientName)) {
+                    cellComponent.setForeground(Color.BLACK);
                 } else {
-                    cellComponent.setForeground(Color.RED); // Out of stock
+                    cellComponent.setForeground(Color.RED);
                 }
             }
         }
