@@ -10,13 +10,11 @@ public class Drinks {
     private int rating; // Out of 5, for example
     private int sweetness; // Scale of 1 to 5 (or any range you prefer)
     private DrinkType type; // Enum for Drip, Espresso, Tea
-    
 
-    public static List<Drinks> allDrinks = new ArrayList<>(); 
+    public static List<Drinks> allDrinks = new ArrayList<>();
 
     // Constructor
-    public Drinks(String name, Map<String, Double> ingredients, String recipe, double price,
-                 int rating, int sweetness, DrinkType type) {
+    public Drinks(String name, Map<String, Double> ingredients, String recipe, double price, int rating, int sweetness, DrinkType type) {
         this.name = name;
         this.ingredients = ingredients;
         this.recipe = recipe;
@@ -24,11 +22,8 @@ public class Drinks {
         this.rating = rating;
         this.sweetness = sweetness;
         this.type = type;
-
-        allDrinks.add(this); 
     }
 
-    // Getters and Setters (add as needed)
     public String getName() {
         return name;
     }
@@ -41,12 +36,24 @@ public class Drinks {
         return price;
     }
 
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
     public int getRating() {
         return rating;
     }
 
-    public void setPrice(double price) {
-        this.price = price;
+    public void setRating(int rating) {
+        this.rating = rating;
+    }
+
+    public int getSweetness() {
+        return sweetness;
+    }
+
+    public void setSweetness(int sweetness) {
+        this.sweetness = sweetness;
     }
 
     public Map<String, Double> getIngredients() {
@@ -57,11 +64,20 @@ public class Drinks {
         this.ingredients = ingredients;
     }
 
-    // ... (Add getters and setters for other attributes)
+    public String getRecipe() {
+        return recipe;
+    }
 
-    // Enum for drink types
-    public enum DrinkType {
-        DRIP, ESPRESSO, TEA
+    public void setRecipe(String recipe) {
+        this.recipe = recipe;
+    }
+
+    public DrinkType getType() {
+        return type;
+    }
+
+    public void setType(DrinkType type) {
+        this.type = type;
     }
 
     public static List<Drinks> getAllDrinks() {
@@ -90,5 +106,10 @@ public class Drinks {
             this.canMake = canMake;
             this.missingIngredient = missingIngredient;
         }
+    }
+
+    // Enum for drink types
+    public enum DrinkType {
+        DRIP, ESPRESSO, TEA
     }
 }
