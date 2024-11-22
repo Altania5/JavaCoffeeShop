@@ -42,17 +42,15 @@ class CoffeeShopWindow extends JFrame {
 
         loadInventory();
 
-        menuPanel = new MenuPanel(ingredients, this);
         drinkPanelMap = new HashMap<>();
         drinksList = new ArrayList<>();
         drinksList = loadDrinksFromDatabase();
-
         Drinks.allDrinks.clear();
         Drinks.allDrinks.addAll(drinksList);
+
+        menuPanel = new MenuPanel(ingredients, this);
         addDrinksToMenu();
         updateMenu();
-
-        addDrinksToDatabase();
 
         JTabbedPane tabbedPane = new JTabbedPane();
         JPanel inventoryPanel = createInventoryPanel();
@@ -108,7 +106,7 @@ public Ingredients getIngredients() {  // Add this getter
                 // Load ingredients for this drink
                 Map<String, Double> ingredients = loadDrinkIngredients(connection, drinkId);
 
-                Drinks drink = new Drinks(name, ingredients, "", price, rating, sweetness, type);
+                Drinks drink = new Drinks(drinkId, name, ingredients, "", price, rating, sweetness, type);
                 drinks.add(drink);
             }
         } catch (SQLException e) {
@@ -227,7 +225,6 @@ public Ingredients getIngredients() {  // Add this getter
             JOptionPane.showMessageDialog(this, "Database error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
 
     private void showRemoveIngredientDialog() {
         int selectedRow = ingredientTable.getSelectedRow();
@@ -452,8 +449,6 @@ public Ingredients getIngredients() {  // Add this getter
             }
         });
 
-
-
         Object[] message = {
                 "Name:", nameField,
                 "Price:", priceField,
@@ -480,7 +475,7 @@ public Ingredients getIngredients() {  // Add this getter
                     return;
                 }
 
-                Drinks newDrink = new Drinks(name, selectedIngredients, "", price, rating, sweetness, type); // Simplified constructor
+                Drinks newDrink = new Drinks(getNextDrinkId(), name, selectedIngredients, "", price, rating, sweetness, type); // Simplified constructor
 
                 // Add drink to the database
                 addDrinkToDatabase(connection, newDrink);
@@ -499,13 +494,30 @@ public Ingredients getIngredients() {  // Add this getter
         }
     }
 
-    private void addDrinksToDatabase() {
-        try (Connection connection = DriverManager.getConnection(App.DATABASE_URL, App.DATABASE_USERNAME, App.DATABASE_PASSWORD)) {
+    private int getNextDrinkId() {
+        int nextId = 1; // Start with 1 (or another appropriate value)
+    
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT MAX(id) FROM drinks")) {
+            if (resultSet.next()) {
+                int maxId = resultSet.getInt(1); // Get current max ID
+                nextId = maxId + 1; // Increment to find the next ID
+            }
+    
+        } catch (SQLException e) {
+            e.printStackTrace(); // Or other error handling
+        }
+    
+        return nextId;
+    }
+
+    private void addDrinksToDatabase(Connection connection, List<Drinks> drinksList) {
+        try {
             for (Drinks drink : drinksList) {
                 addDrinkToDatabase(connection, drink);
             }
         } catch (SQLException e) {
-            e.printStackTrace(); // Handle exception appropriately
+            e.printStackTrace();
         }
     }
 
@@ -514,54 +526,262 @@ public Ingredients getIngredients() {  // Add this getter
         try (PreparedStatement ingredientStatement = connection.prepareStatement(insertIngredientsSQL)) {
             for (Map.Entry<String, Double> ingredientEntry : ingredients.entrySet()) {
                 ingredientStatement.setInt(1, drinkId);
-                ingredientStatement.setString(2, ingredientEntry.getKey());
-                ingredientStatement.setDouble(3, ingredientEntry.getValue());
+                ingredientStatement.setString(2, ingredientEntry.getKey());  // Check this
+                ingredientStatement.setDouble(3, ingredientEntry.getValue()); // Check this
                 ingredientStatement.executeUpdate();
             }
-        } // The try-with-resources automatically closes ingredientStatement
+        }
     }
 
-    private void addDrinkToDatabase(Connection connection, Drinks drink) throws SQLException {
+    private void addDrinkToDatabase(Connection connection, Drinks drink) throws SQLException {  // MODIFIED!
+
         try {
             connection.setAutoCommit(false); // Start transaction
-
-            // 1. Insert into drinks table
+    
+            //Insert into drinks table, but without drink_id since it is auto-incremented.
             String insertDrinkSQL = "INSERT INTO drinks (name, price, rating, sweetness, drink_type) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement statement = connection.prepareStatement(insertDrinkSQL, Statement.RETURN_GENERATED_KEYS)) {
-                statement.setString(1, drink.getName());
-                statement.setDouble(2, drink.getPrice());
-                statement.setInt(3, drink.getRating());
-                statement.setInt(4, drink.getSweetness());
-                statement.setString(5, drink.getType().toString());
+                // ... set parameters as before (name, price, etc.)
                 statement.executeUpdate();
-
+    
+                // Get the auto-generated ID:
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        int drinkId = generatedKeys.getInt(1);
-                        addDrinkIngredientsToDatabase(connection, drinkId, drink.getIngredients()); // Call like this
+                        int generatedId = generatedKeys.getInt(1);
+                        drink.setId(generatedId);  // Set the ID in the drink object
                     }
                 }
+    
+                addDrinkIngredientsToDatabase(connection, drink.getId(), drink.getIngredients()); //Inserting the ingredients
+    
             }
+            connection.commit();
+    
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e; // Re-throw after rollback
+        } finally {
+            connection.setAutoCommit(true); //Important to restore
+        }
+    }
 
+    private JPanel createDrinksPanel() {
+        JPanel drinksPanel = new JPanel(new BorderLayout());
+        JPanel drinkListPanel = new JPanel(new GridLayout(0, 2, 10, 10)); // Panel to hold drink boxes
+    
+    
+        for (Drinks drink : drinksList) {  // Iterate through your drinks list
+            JPanel drinkBox = createDrinkBox(drink); // Create a box for each drink
+            drinkListPanel.add(drinkBox); // Add the box to the panel
+        }
+    
+    
+        JScrollPane scrollPane = new JScrollPane(drinkListPanel); // Add scrolling for many drinks
+        scrollPane.setName("drinksSrollPane");
+        drinksPanel.add(scrollPane, BorderLayout.CENTER); // Add the list panel to the center
+    
+        JButton createDrinkButton = new JButton("Create New Drink");
+        createDrinkButton.addActionListener(e -> showCreateDrinkDialog());
+        drinksPanel.add(createDrinkButton, BorderLayout.SOUTH);
+    
+        return drinksPanel;
+    }
+
+    private JPanel createDrinkBox(Drinks drink) {
+        JPanel drinkBox = new JPanel(new BorderLayout());
+        drinkBox.setBorder(BorderFactory.createTitledBorder(drink.getName())); // Drink name as title
+    
+    
+        JLabel priceLabel = new JLabel("Price: $" + String.format("%.2f", drink.getPrice()));
+        JLabel ratingLabel = new JLabel("Rating: " + drink.getRating());
+        JLabel sweetnessLabel = new JLabel("Sweetness: " + drink.getSweetness());
+        JLabel typeLabel = new JLabel("Type: " + drink.getType());
+    
+        JPanel detailsPanel = new JPanel(new GridLayout(0, 1)); // Vertical layout for details
+        detailsPanel.add(priceLabel);
+        detailsPanel.add(ratingLabel);
+        detailsPanel.add(sweetnessLabel);
+        detailsPanel.add(typeLabel);
+    
+        drinkBox.add(detailsPanel, BorderLayout.CENTER);
+    
+        JButton editButton = new JButton("Edit");
+        editButton.addActionListener(e -> showEditDrinkDialog(drink)); // Pass the drink object
+        drinkBox.add(editButton, BorderLayout.SOUTH);
+    
+        return drinkBox;
+    }
+
+    private void showEditDrinkDialog(Drinks drink) {
+        JTextField nameField = new JTextField(drink.getName(), 20);
+        JTextField priceField = new JTextField(String.valueOf(drink.getPrice()), 10);
+        JSpinner ratingSpinner = new JSpinner(new SpinnerNumberModel(drink.getRating(), 1, 5, 1));
+        JSlider sweetnessSlider = new JSlider(JSlider.HORIZONTAL, 1, 5, drink.getSweetness());
+        JComboBox<Drinks.DrinkType> typeComboBox = new JComboBox<>(Drinks.DrinkType.values());
+        typeComboBox.setSelectedItem(drink.getType());
+    
+    
+        DefaultListModel<String> ingredientListModel = new DefaultListModel<>();
+        JList<String> ingredientList = new JList<>(ingredientListModel);
+        JTextField quantityField = new JTextField(5);
+        JButton addIngredientButton = new JButton("Add Ingredient");
+        JButton removeIngredientButton = new JButton("Remove Ingredient");
+    
+        Map<String, Double> currentIngredients = new HashMap<>(drink.getIngredients()); // Editable copy
+    
+        for (String ingredient : currentIngredients.keySet()) {
+            ingredientListModel.addElement(ingredient);
+        }
+    
+        // Populate ingredientList with available ingredients from the database
+        try (Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT ingredients FROM user.ingredients")) {
+    
+            while (resultSet.next()) {
+                String ingredientName = resultSet.getString("ingredients");
+                if (!ingredientListModel.contains(ingredientName)) { // Avoid duplicates
+                    ingredientListModel.addElement(ingredientName);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    
+    
+        addIngredientButton.addActionListener(e -> {
+            String selectedIngredient = ingredientList.getSelectedValue();
+    
+            try {
+                double quantity = Double.parseDouble(quantityField.getText());
+                if (selectedIngredient != null) {
+                    currentIngredients.put(selectedIngredient, quantity);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Invalid quantity. Please enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            // Update a display area (e.g., a text area) to show selected ingredients
+            // ...
+        });
+    
+        removeIngredientButton.addActionListener(e -> {
+            String selectedIngredient = ingredientList.getSelectedValue();
+            if (selectedIngredient != null) {
+                currentIngredients.remove(selectedIngredient);
+                ingredientListModel.removeElement(selectedIngredient); // Remove from the JList
+            }
+            // Update the display area to reflect removal
+            // ...
+    
+        });
+    
+    
+        Object[] message = {
+            "Name:", nameField,
+            "Price:", priceField,
+            "Rating (1-5):", ratingSpinner,
+            "Sweetness (1-5):", sweetnessSlider,
+            "Type:", typeComboBox,
+            "Ingredients:", new JScrollPane(ingredientList), // Scrollable
+            "Quantity:", quantityField,
+            addIngredientButton, removeIngredientButton
+        };
+    
+        int option = JOptionPane.showConfirmDialog(this, message, "Edit Drink", JOptionPane.OK_CANCEL_OPTION);
+    
+        if (option == JOptionPane.OK_OPTION) {
+            try {
+                String newName = nameField.getText();
+                double newPrice = Double.parseDouble(priceField.getText());
+                int newRating = (int) ratingSpinner.getValue();
+                int newSweetness = sweetnessSlider.getValue();
+                Drinks.DrinkType newType = (Drinks.DrinkType) typeComboBox.getSelectedItem();
+    
+    
+                if (newName.isEmpty() || currentIngredients.isEmpty()) { // Input validation
+                    JOptionPane.showMessageDialog(this, "Drink name and ingredients cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return; // Stop further processing
+                }
+    
+                // 1. Update drink in database
+                updateDrinkInDatabase(drink.getId(), newName, newPrice, newRating, newSweetness, newType, currentIngredients);
+    
+    
+                // 2. Update the drink object
+                drink.setName(newName);
+                drink.setPrice(newPrice);
+                drink.setRating(newRating);
+                drink.setSweetness(newSweetness);
+                drink.setType(newType);
+                drink.setIngredients(currentIngredients); // Update the ingredients
+    
+                //3. Remove ingredients from the JList that are no longer in the selectedIngredients Map
+                for (int i = 0; i < ingredientListModel.size(); i++) {
+                    String ingredient = ingredientListModel.get(i);
+                    if (!currentIngredients.containsKey(ingredient)) {
+                        ingredientListModel.removeElement(ingredient);
+                    }
+                }
+    
+    
+    
+                // Update the Menu and Drinks Tab with the changes. 
+                updateMenu();
+                //Refresh the Drinks Panel (Assuming the name of your JPanel to hold drink boxes in the createDrinksPanel() is drinkListPanel)
+                JPanel drinkListPanel = (JPanel) ((JScrollPane)getContentPane().getComponent(2)).getViewport().getView();//Get the scrollpane's view
+                drinkListPanel.removeAll();
+    
+    
+                for (Drinks d : drinksList) {  // Iterate through your drinks list
+                    JPanel drinkBox = createDrinkBox(d); // Create a box for each drink
+                    drinkListPanel.add(drinkBox); // Add the box to the panel
+                }
+                drinkListPanel.revalidate();
+                drinkListPanel.repaint();
+    
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Invalid price. Please enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
+            } catch (SQLException e) {
+                // Handle database errors
+                JOptionPane.showMessageDialog(this, "Database error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void updateDrinkInDatabase(int drinkId, String name, double price, int rating, int sweetness, Drinks.DrinkType type, Map<String, Double> ingredients) throws SQLException {
+        try {
+            connection.setAutoCommit(false); // Start transaction
+    
+            // 1. Update the drinks table
+            String updateDrinkSQL = "UPDATE drinks SET name = ?, price = ?, rating = ?, sweetness = ?, drink_type = ? WHERE id = ?";
+            try (PreparedStatement statement = connection.prepareStatement(updateDrinkSQL)) {
+                statement.setString(1, name);
+                statement.setDouble(2, price);
+                statement.setInt(3, rating);
+                statement.setInt(4, sweetness);
+                statement.setString(5, type.toString());
+                statement.setInt(6, drinkId);
+                statement.executeUpdate();
+            }
+    
+            // 2. Delete and re-insert ingredients (simplest approach for updates)
+            String deleteIngredientsSQL = "DELETE FROM drink_ingredients WHERE drink_id = ?";
+            try (PreparedStatement deleteStatement = connection.prepareStatement(deleteIngredientsSQL)) {
+                deleteStatement.setInt(1, drinkId);
+                deleteStatement.executeUpdate();
+            }
+    
+            // 3. Insert new ingredients
+            addDrinkIngredientsToDatabase(connection, drinkId, ingredients);
+    
             connection.commit(); // Commit transaction
         } catch (SQLException e) {
             connection.rollback(); // Rollback on error
-            throw e; // Re-throw the exception to be handled by the caller
+            throw e; // Re-throw the exception
         } finally {
             connection.setAutoCommit(true); // Restore auto-commit
         }
     }
-
-    private JPanel createDrinksPanel(){
-        JPanel createDrinkPanel = new JPanel(new BorderLayout());
-        JButton createDrinkButton = new JButton("Create New Drink");
-        createDrinkButton.addActionListener(e -> showCreateDrinkDialog());
-        createDrinkPanel.add(createDrinkButton, BorderLayout.SOUTH);
-        return createDrinkPanel;
-
-    }
-
-
 
     private void loadInventory() {
         try (Statement statement = connection.createStatement();

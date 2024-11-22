@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Drinks {
+    private int id;
     private String name;
     private Map<String, Double> ingredients; // Ingredient name, quantity
     private String recipe; // Instructions or description of preparation
@@ -14,7 +15,8 @@ public class Drinks {
     public static List<Drinks> allDrinks = new ArrayList<>();
 
     // Constructor
-    public Drinks(String name, Map<String, Double> ingredients, String recipe, double price, int rating, int sweetness, DrinkType type) {
+    public Drinks(int id, String name, Map<String, Double> ingredients, String recipe, double price, int rating, int sweetness, DrinkType type) {
+        this.id = id;
         this.name = name;
         this.ingredients = ingredients;
         this.recipe = recipe;
@@ -23,6 +25,14 @@ public class Drinks {
         this.sweetness = sweetness;
         this.type = type;
     }
+
+    public int getId() {
+        return id;
+    }
+
+     public void setId(int i) {
+        id = i;
+     }
 
     public String getName() {
         return name;

@@ -49,9 +49,8 @@ public class MenuPanel extends JPanel {
             drinkPanel.add(unavailableLabel, BorderLayout.SOUTH);
         }
 
-
-        drinkPanel.revalidate();
-        drinkPanel.repaint();
+        revalidate();
+        repaint();
     }
 
     public void updateMenu(Ingredients ingredients) { 
