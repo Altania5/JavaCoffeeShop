@@ -16,8 +16,13 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+
+
 
 public class App {
 
@@ -26,11 +31,11 @@ public class App {
     private JCheckBox rememberMeCheckBox;
 
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
-    private static final int ITERATIONS = 65536;
-    private static final int KEY_SIZE = 256;
+    private static final int HASHING_ITERATIONS = 65536;
+    private static final int HASHING_KEY_LENGTH = 256;
     private static final int SALT_LENGTH = 16;
     private static final byte[] SALT = new byte[SALT_LENGTH];
-    public static final String DATABASE_URL = "jdbc:mysql://45.62.14.171:3306/user";
+    public static final String DATABASE_URL = "jdbc:mysql://45.62.14.35:3306/user";
     public static final String DATABASE_USERNAME = "altan";
     public static final String DATABASE_PASSWORD = "Pickles5-_";
 
@@ -213,39 +218,71 @@ public class App {
         return null;
     }
 
-    private void storeCredentials(String username, String password) {
-        try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
+    private String hashPassword(String password) {  // Method to hash password using PBKDF2
+        try {
             SecureRandom random = new SecureRandom();
             byte[] salt = new byte[SALT_LENGTH];
             random.nextBytes(salt);
-            String base64Salt = Base64.getEncoder().encodeToString(salt);
-
-            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEY_SIZE);
-            SecretKey secretKey = factory.generateSecret(spec);
-            SecretKeySpec keySpec = new SecretKeySpec(secretKey.getEncoded(), "AES");
-
-            byte[] iv = new byte[16];
-            random.nextBytes(iv);
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
-            String base64IV = Base64.getEncoder().encodeToString(iv);
-
-            String encryptedPassword = encrypt(password, keySpec, ivParameterSpec);
-            
-            System.out.println("Password used for encryption: " + password);
-
-            String sql = "UPDATE users SET encrypted_password = ?, salt = ?, iv = ? WHERE username = ?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, encryptedPassword);
-                statement.setString(2, base64Salt);
-                statement.setString(3, base64IV);
-                statement.setString(4, username);
-                statement.executeUpdate();
-            }
-        } catch (Exception e) {
+    
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, HASHING_ITERATIONS, HASHING_KEY_LENGTH);
+            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            byte[] hash = skf.generateSecret(spec).getEncoded();
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
+            return null;
         }
     }
+
+private void storeCredentials(String username, String password) {
+    try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
+       SecureRandom random = new SecureRandom();
+       //Generate Salt
+        byte[] salt = new byte[SALT_LENGTH];
+        random.nextBytes(salt);
+        //Hash the password with the salt. Do not store the raw password.
+        String hashedPassword = hashPassword(password); //Hash the password with PBKDF2
+
+        // Generate IV for encryption
+        byte[] iv = new byte[16];
+        random.nextBytes(iv);
+
+        // Derive the secret key (for encryption) from the *hashed* password
+        PBEKeySpec keySpec = new PBEKeySpec(hashedPassword.toCharArray(), salt, HASHING_ITERATIONS, HASHING_KEY_LENGTH); //Use the hashed password, not raw.
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        SecretKey key = keyFactory.generateSecret(keySpec);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getEncoded(), "AES");
+
+        // Encrypt the raw password.
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(iv)); //Use the secretKeySpec derived from hashed password.
+        byte[] encryptedPasswordBytes = cipher.doFinal(password.getBytes());
+        String encryptedPassword = Base64.getEncoder().encodeToString(encryptedPasswordBytes);
+
+
+        // Store the *hashed* password, salt, iv, and the encrypted password:
+        String sql = "UPDATE users SET password = ?, salt = ?, iv = ?, encrypted_password = ? WHERE username = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, hashedPassword);  //Store the HASHED password.
+            statement.setString(2, Base64.getEncoder().encodeToString(salt));
+            statement.setString(3, Base64.getEncoder().encodeToString(iv));
+            statement.setString(4, encryptedPassword);
+            statement.setString(5, username);
+            System.err.println("Hashed Password: " + hashedPassword);
+            System.err.println("Salt (Base64): " + Base64.getEncoder().encodeToString(salt));
+            System.err.println("IV (Base64): " + Base64.getEncoder().encodeToString(iv));
+            System.err.println("Encrypted Password (Base64): " + encryptedPassword);
+            statement.executeUpdate();
+        }
+
+
+    } catch (SQLException | NoSuchAlgorithmException | InvalidKeySpecException e) {  // Add other potential exceptions
+        e.printStackTrace(); // Good for debugging, but add more user-friendly error handling
+    } catch (Exception e) {
+        throw new RuntimeException(e);
+    }
+}
+
 
     private void clearStoredCredentials(String username) {
         try (Connection connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD)) {
@@ -311,26 +348,22 @@ public class App {
         return null;
     }
 
-    private String encrypt(String value, SecretKeySpec keySpec, IvParameterSpec iv) throws Exception {
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec, iv);
-        byte[] encrypted = cipher.doFinal(value.getBytes());
-        return Base64.getEncoder().encodeToString(encrypted);
-    }
+    private String decrypt(String base64EncryptedPassword, String base64Salt, String base64IV, String storedHashedPassword) throws Exception {
 
-    private String decrypt(String encrypted, String base64IV, String base64Salt, String storedHashedPassword) throws Exception {
-        byte[] iv = Base64.getDecoder().decode(base64IV);
+        byte[] encrypted = Base64.getDecoder().decode(base64EncryptedPassword);
         byte[] salt = Base64.getDecoder().decode(base64Salt);
+        byte[] iv = Base64.getDecoder().decode(base64IV);
     
+        // Key Derivation: (Use storedHashedPassword!)
+        PBEKeySpec spec = new PBEKeySpec(storedHashedPassword.toCharArray(), salt, HASHING_ITERATIONS, HASHING_KEY_LENGTH);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        PBEKeySpec spec = new PBEKeySpec(storedHashedPassword.toCharArray(), salt, ITERATIONS, KEY_SIZE);
-        SecretKey secretKey = factory.generateSecret(spec);
-        SecretKeySpec keySpec = new SecretKeySpec(secretKey.getEncoded(), "AES");
+        SecretKey tmp = factory.generateSecret(spec);
+        SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
     
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(iv));
-        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encrypted));
-        return new String(decryptedBytes); 
+    
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
+        return new String(cipher.doFinal(encrypted));
     }
 
     private void showForgotPasswordDialog(JFrame parentFrame) {
