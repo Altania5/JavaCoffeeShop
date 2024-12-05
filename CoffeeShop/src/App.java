@@ -23,8 +23,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 
-
-
 public class App {
 
     private CoffeeShopWindow window;
