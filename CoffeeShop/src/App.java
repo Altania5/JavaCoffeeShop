@@ -34,7 +34,7 @@ public class App {
     private static final int KEY_SIZE = 256;
     private static final int SALT_LENGTH = 16;
     private static final byte[] SALT = new byte[SALT_LENGTH];
-    public static final String DATABASE_URL = "jdbc:mysql://45.62.14.35:3306/user";
+    public static final String DATABASE_URL = "jdbc:mysql://45.62.14.27:3306/user";
     public static final String DATABASE_USERNAME = "altan";
     public static final String DATABASE_PASSWORD = "Pickles5-_";
     private static final String CREDENTIALS_FILE = "credentials.txt"; // Store in the same directory as the .jar

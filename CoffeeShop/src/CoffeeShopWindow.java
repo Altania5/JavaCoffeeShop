@@ -412,6 +412,8 @@ public Ingredients getIngredients() {  // Add this getter
         JTextField quantityField = new JTextField(5);
         JButton addIngredientButton = new JButton("Add Ingredient");
         JButton removeIngredientButton = new JButton("Remove Ingredient");
+        JTextArea ingredientsDisplay = new JTextArea();
+        JScrollPane displayScrollPane = new JScrollPane(ingredientsDisplay);
 
         Map<String, Double> selectedIngredients = new HashMap<>();
 
@@ -431,8 +433,16 @@ public Ingredients getIngredients() {  // Add this getter
                 double quantity = Double.parseDouble(quantityField.getText());
                 if (selectedIngredient != null) {
                     selectedIngredients.put(selectedIngredient, quantity);
-                    // Update a display area (e.g., a text area) to show selected ingredients
-                    // ...
+                    ingredientsDisplay.append(selectedIngredient + ": " + quantity + "\n");
+                    quantityField.setText("");
+                    // ... other dialog components ...
+                    Object[] message = {
+                        // ... other fields ...
+                        "Selected Ingredients:", displayScrollPane, // Add the display
+                        "Ingredient:", new JScrollPane(ingredientList), // Keep the original list
+                        "Quantity:", quantityField,
+                        addIngredientButton, removeIngredientButton
+                    };
                 }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Invalid quantity. Please enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -442,10 +452,15 @@ public Ingredients getIngredients() {  // Add this getter
 
         removeIngredientButton.addActionListener(e -> {
             String selectedIngredient = ingredientList.getSelectedValue();
-            if (selectedIngredient != null) {
+            if (selectedIngredient != null && selectedIngredients.containsKey(selectedIngredient)) {
                 selectedIngredients.remove(selectedIngredient);
-                // Update the display area to reflect removal
-                // ...
+        
+                // Rebuild the display string:
+                StringBuilder displayText = new StringBuilder();
+                for (Map.Entry<String, Double> entry : selectedIngredients.entrySet()) {
+                    displayText.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                }
+                ingredientsDisplay.setText(displayText.toString());
             }
         });
 
@@ -533,35 +548,39 @@ public Ingredients getIngredients() {  // Add this getter
         }
     }
 
-    private void addDrinkToDatabase(Connection connection, Drinks drink) throws SQLException {  // MODIFIED!
+    private void addDrinkToDatabase(Connection connection, Drinks drink) throws SQLException {
 
         try {
             connection.setAutoCommit(false); // Start transaction
     
-            //Insert into drinks table, but without drink_id since it is auto-incremented.
             String insertDrinkSQL = "INSERT INTO drinks (name, price, rating, sweetness, drink_type) VALUES (?, ?, ?, ?, ?)";
+    
             try (PreparedStatement statement = connection.prepareStatement(insertDrinkSQL, Statement.RETURN_GENERATED_KEYS)) {
-                // ... set parameters as before (name, price, etc.)
+                statement.setString(1, drink.getName()); // Setting the name
+                statement.setDouble(2, drink.getPrice());
+                statement.setInt(3, drink.getRating());
+                statement.setInt(4, drink.getSweetness());
+                statement.setString(5, drink.getType().toString());
                 statement.executeUpdate();
     
-                // Get the auto-generated ID:
+                // Get the generated ID *after* the drink insertion:
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int generatedId = generatedKeys.getInt(1);
-                        drink.setId(generatedId);  // Set the ID in the drink object
+                        drink.setId(generatedId);
                     }
                 }
+                //Now call method to insert ingredients
+                addDrinkIngredientsToDatabase(connection, drink.getId(), drink.getIngredients());
     
-                addDrinkIngredientsToDatabase(connection, drink.getId(), drink.getIngredients()); //Inserting the ingredients
-    
-            }
-            connection.commit();
+            } //The commit statement needs to be outside this try-with-resources block in order to commit both insertions at the same time.
+            connection.commit(); // Commit *after* both drink and ingredients are inserted
     
         } catch (SQLException e) {
-            connection.rollback();
+            connection.rollback();  // Rollback on any error
             throw e; // Re-throw after rollback
         } finally {
-            connection.setAutoCommit(true); //Important to restore
+            connection.setAutoCommit(true);
         }
     }
 
