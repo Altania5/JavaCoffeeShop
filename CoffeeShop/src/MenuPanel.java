@@ -2,18 +2,19 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
-public class MenuPanel extends JPanel {
+public class MenuPanel extends JPanel implements DrinkListListener{
     private Map<Drinks, JPanel> drinkPanelMap; // Added to store drink panels
     private CoffeeShopWindow coffeeShopWindow;
 
-    public MenuPanel(Ingredients ingredients, CoffeeShopWindow coffeeShopWindow) {
+    public MenuPanel(Ingredients ingredients, CoffeeShopWindow window) {
         this.drinkPanelMap = new HashMap<>(); //
-        this.coffeeShopWindow = coffeeShopWindow;
+        this.coffeeShopWindow = window;
 
         // Set layout (we'll use GridLayout for simplicity)
         setLayout(new GridLayout(0, 2, 10, 10)); // 2 columns, variable rows, 10px spacing
-
+        window.addDrinkListListener(this);
     }
 
     public void addDrink(Drinks drink) {  // Modified to prevent duplicates
@@ -84,5 +85,25 @@ public class MenuPanel extends JPanel {
         }
         revalidate();  
         repaint();   
+    }
+
+    @Override
+    public void onDrinkListUpdated() {
+        // 1. Clear existing drinks from the panel
+        this.removeAll(); 
+
+        // 2. Get the updated drinks list from CoffeeShopWindow
+        System.out.println("onDrinkListUpdated() called!");
+        List<Drinks> updatedDrinksList = Drinks.getAllDrinks(); // Or a similar method
+        System.out.println("Updated drinks list size: " + updatedDrinksList.size());
+
+        // 3. Add the updated drinks to the panel
+        for (Drinks drink : updatedDrinksList) {
+            this.addDrink(drink);
+        }
+
+        // 4. Revalidate and repaint the panel
+        this.revalidate();
+        this.repaint();
     }
 }

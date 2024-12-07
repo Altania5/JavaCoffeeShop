@@ -1,0 +1,3 @@
+interface DrinkListListener {
+    void onDrinkListUpdated();
+}

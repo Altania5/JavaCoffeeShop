@@ -20,7 +20,7 @@ class CoffeeShopWindow extends JFrame {
     private JScrollPane ingredientTableScrollPane;
     private IngredientTableModel ingredientTableModel;
     public List<Drinks> drinksList;
-    
+    private List<DrinkListListener> listeners = new ArrayList<>();
 
     public CoffeeShopWindow() {
         try {
@@ -77,10 +77,23 @@ class CoffeeShopWindow extends JFrame {
 
     // CoffeeShopWindow.java
 
-public Ingredients getIngredients() {  // Add this getter
-    return ingredients;
-}
+    public Ingredients getIngredients() {  // Add this getter
+        return ingredients;
+    }
 
+    public void addDrinkListListener(DrinkListListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeDrinkListListener(DrinkListListener listener) {
+        listeners.remove(listener);
+    }
+
+    public void notifyDrinkListListeners() {
+        for (DrinkListListener listener : listeners) {
+            listener.onDrinkListUpdated();
+        }
+    }
 
     private void addDrinksToMenu() {
         for (Drinks drink : drinksList) { //Add drinks from the database
@@ -443,6 +456,7 @@ public Ingredients getIngredients() {  // Add this getter
                 }
                 //Now call method to insert ingredients
                 addDrinkIngredientsToDatabase(connection, drink.getId(), drink.getIngredients());
+                notifyDrinkListListeners(); 
     
             } //The commit statement needs to be outside this try-with-resources block in order to commit both insertions at the same time.
             connection.commit(); // Commit *after* both drink and ingredients are inserted
@@ -537,6 +551,7 @@ public Ingredients getIngredients() {  // Add this getter
             }
             drinkListPanel.revalidate();
             drinkListPanel.repaint();
+            notifyDrinkListListeners();
         } else {
             // Handle the case where the drinkListPanel is not found
             System.err.println("Error: drinkListPanel not found in drinksPanel.");
