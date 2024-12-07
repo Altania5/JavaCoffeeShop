@@ -4,12 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MenuPanel extends JPanel {
-    private Ingredients ingredients;
     private Map<Drinks, JPanel> drinkPanelMap; // Added to store drink panels
     private CoffeeShopWindow coffeeShopWindow;
 
     public MenuPanel(Ingredients ingredients, CoffeeShopWindow coffeeShopWindow) {
-        this.ingredients = ingredients;
         this.drinkPanelMap = new HashMap<>(); //
         this.coffeeShopWindow = coffeeShopWindow;
 
