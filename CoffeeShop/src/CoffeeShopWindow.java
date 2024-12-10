@@ -488,6 +488,8 @@ class CoffeeShopWindow extends JFrame {
         createDrinkButton.addActionListener(e -> showCreateDrinkDialog());
         drinksPanel.add(createDrinkButton, BorderLayout.SOUTH);
     
+        drinksPanel.setName("Drinks");
+        
         return drinksPanel;
     }
 
@@ -530,27 +532,29 @@ class CoffeeShopWindow extends JFrame {
 
     public void refreshDrinksPanel() {
         // Get the drinksPanel directly from the JTabbedPane
-        JPanel drinksPanel = (JPanel) ((JTabbedPane) getContentPane().getComponent(2)).getComponent(0); 
+        JTabbedPane tabbedPane = (JTabbedPane) getContentPane().getComponent(0);
     
         // Get the drinkListPanel from the drinksPanel
-        Component[] components = drinksPanel.getComponents();
-        JPanel drinkListPanel = null;
-        for (Component c : components) {
-            if (c instanceof JScrollPane) {
-                drinkListPanel = (JPanel) ((JScrollPane) c).getViewport().getView();
-                break;
-            }
+        JPanel drinksPanel = null;
+    for (Component c : tabbedPane.getComponents()) {
+        if ("Drinks".equals(c.getName())) { // Or check if instance of your drinks panel type
+            drinksPanel = (JPanel) c;
+            break;
         }
+    }
     
-        if (drinkListPanel != null) {
-            drinkListPanel.removeAll();
+        if (drinksPanel  != null) {
+            drinksPanel .removeAll();
+    
+            // Reload drinksList from the database to ensure it's up-to-date
+            drinksList = loadDrinksFromDatabase(); 
     
             for (Drinks d : drinksList) {
                 JPanel drinkBox = createDrinkBox(d);
-                drinkListPanel.add(drinkBox);
+                drinksPanel.add(drinkBox);
             }
-            drinkListPanel.revalidate();
-            drinkListPanel.repaint();
+            drinksPanel.revalidate();
+            drinksPanel.repaint();
             notifyDrinkListListeners();
         } else {
             // Handle the case where the drinkListPanel is not found

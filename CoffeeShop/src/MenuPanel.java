@@ -53,53 +53,43 @@ public class MenuPanel extends JPanel implements DrinkListListener{
     }
 
     public void updateMenu(Ingredients ingredients) { 
-        for (Drinks drink : drinkPanelMap.keySet()) { 
+        // This method now only refreshes the availability status of existing drinks
+        for (Drinks drink : drinkPanelMap.keySet()) {
             Drinks.CheckResult result = drink.canMake(ingredients);
-    
             JPanel drinkPanel = drinkPanelMap.get(drink);
-            drinkPanel.removeAll(); 
-    
-            // *** Re-add components to the drink panel ***
-    
-            JLabel nameLabel = new JLabel(drink.getName()); 
-            nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD));
-            drinkPanel.add(nameLabel, BorderLayout.NORTH);
-    
-            JPanel priceRatingPanel = new JPanel(new GridLayout(2, 1));
-            JLabel priceLabel = new JLabel("$" + String.format("%.2f", drink.getPrice())); 
-            priceRatingPanel.add(priceLabel);
-    
-            JLabel ratingLabel = new JLabel("Rating: " + drink.getRating() + "/5"); 
-            priceRatingPanel.add(ratingLabel);
-    
-            drinkPanel.add(priceRatingPanel, BorderLayout.CENTER);
-    
-            if (!result.canMake) {
-                JLabel unavailableLabel = new JLabel("Sold Out: " + result.missingIngredient);
-                unavailableLabel.setForeground(Color.RED);
-                drinkPanel.add(unavailableLabel, BorderLayout.SOUTH);
+
+            // Find and update the "Sold Out" label if it exists
+            for (Component component : drinkPanel.getComponents()) {
+                if (component instanceof JLabel && ((JLabel) component).getText().startsWith("Sold Out: ")) {
+                    if (!result.canMake) {
+                        ((JLabel) component).setText("Sold Out: " + result.missingIngredient);
+                    } else {
+                        drinkPanel.remove(component); // Remove the label if the drink is available
+                    }
+                    break; 
+                }
             }
-    
+
             drinkPanel.revalidate();
             drinkPanel.repaint();
         }
-        revalidate();  
-        repaint();   
+        revalidate();
+        repaint();
     }
 
     @Override
     public void onDrinkListUpdated() {
         // 1. Clear existing drinks from the panel
-        this.removeAll(); 
+        this.removeAll();
 
         // 2. Get the updated drinks list from CoffeeShopWindow
         System.out.println("onDrinkListUpdated() called!");
-        List<Drinks> updatedDrinksList = Drinks.getAllDrinks(); // Or a similar method
+        List<Drinks> updatedDrinksList = Drinks.getAllDrinks();
         System.out.println("Updated drinks list size: " + updatedDrinksList.size());
 
         // 3. Add the updated drinks to the panel
         for (Drinks drink : updatedDrinksList) {
-            this.addDrink(drink);
+            this.addDrink(drink); 
         }
 
         // 4. Revalidate and repaint the panel

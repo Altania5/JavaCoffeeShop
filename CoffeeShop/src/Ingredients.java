@@ -53,10 +53,10 @@ public class Ingredients {
     public void addIngredient(String ingredientName, boolean inStock) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO user.ingredients (ingredients, inStock) VALUES (?, ?)")) {
-            statement.setString(1, ingredientName);
-            statement.setInt(2, inStock ? 1 : 0);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+                statement.setString(1, ingredientName);
+                statement.setInt(2, inStock ? 1 : 0);
+                statement.executeUpdate();
+            } catch (SQLException e) {
         }
     }
 
