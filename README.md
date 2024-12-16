@@ -9,11 +9,14 @@
 * add coffee log
 * add "log coffee" button to menu panel for select users
 * change how quantities work
+* add images to items
 * add cart panel for check-out
-
-* Order Coffee
-* Create and login to accounts stored in a database
-* Password encryption for users
+* make auto-login safe to use and viable
+* update database to be able to connect from any device
+* auto scale app based on device
+* loading screen animation
+* redesign the app so it is actually nice to look at
+* maybe drink customization
 
 ## Key Features
 
