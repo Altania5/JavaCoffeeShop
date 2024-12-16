@@ -20,6 +20,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
     private JScrollPane ingredientTableScrollPane;
     private IngredientTableModel ingredientTableModel;
     public List<Drinks> drinksList;
+    CoffeeLogPanel coffeeLog;
     private List<DrinkListListener> listeners = new ArrayList<>();
 
     public CoffeeShopWindow() {
@@ -31,6 +32,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         }
 
         ingredients = new Ingredients(connection);
+        
 
         ingredientTable = new JTable(); // Create JTable instance only once
         ingredientTableScrollPane = new JScrollPane(ingredientTable);
@@ -47,13 +49,15 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         drinksList = new ArrayList<>();
         drinksList = loadDrinksFromDatabase();
 
-        menuPanel = new MenuPanel(ingredients, this);
-        addDrinksToMenu();
-        updateMenu();
-
         JTabbedPane tabbedPane = new JTabbedPane();
         JPanel inventoryPanel = createInventoryPanel();
         JPanel drinksPanel = createDrinksPanel();
+
+        coffeeLog = createCoffeeLog();
+
+        menuPanel = new MenuPanel(ingredients, this, tabbedPane, coffeeLog);
+        addDrinksToMenu();
+        updateMenu();
     
         setTitle("Coffee Shop");
         setSize(800, 600);
@@ -63,6 +67,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         tabbedPane.addTab("Menu", menuPanel);
         tabbedPane.addTab("Inventory", inventoryPanel);
         tabbedPane.addTab("Drinks", drinksPanel);
+        tabbedPane.addTab("Coffee Log", coffeeLog);
         add(tabbedPane); // Add tabbedPane to the JFrame
     
         try {
@@ -473,8 +478,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
     private JPanel createDrinksPanel() {
         JPanel drinksPanel = new JPanel(new BorderLayout());
         JPanel drinkListPanel = new JPanel(new GridLayout(0, 2, 10, 10)); // Panel to hold drink boxes
-    
-    
+        
         for (Drinks drink : drinksList) {  // Iterate through your drinks list
             JPanel drinkBox = createDrinkBox(drink); // Create a box for each drink
             drinkListPanel.add(drinkBox); // Add the box to the panel
@@ -678,6 +682,14 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
 
     public void updateMenu() { 
         menuPanel.updateMenu(ingredients); // Call MenuPanel's updateMenu
+    }
+
+    private CoffeeLogPanel createCoffeeLog() {
+        return new CoffeeLogPanel(connection);
+    }
+
+    public CoffeeLogPanel getCoffeeLogPanel() {
+        return coffeeLog; // Or the name of your CoffeeLogPanel variable
     }
 
     @Override

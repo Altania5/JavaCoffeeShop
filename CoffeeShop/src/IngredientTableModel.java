@@ -1,7 +1,6 @@
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.util.ArrayList;

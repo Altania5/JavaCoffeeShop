@@ -30,6 +30,15 @@ public class Ingredients {
         loadIngredientsFromDatabase();
     }
 
+    public String getEspressoType() {
+        for (Map.Entry<String, IngredientData> entry : ingredientMap.entrySet()) {
+            if (entry.getValue().type.equals("Espresso")) {  // Or however you identify espresso type
+                return entry.getKey(); // Return the name of the espresso
+            }
+        }
+        return null; // or "N/A", or handle as needed if no espresso type is found
+    }
+
     private void loadIngredientsFromDatabase() {
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT ingredients, type, inStock FROM user.ingredients")) {
