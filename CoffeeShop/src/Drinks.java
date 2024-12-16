@@ -1,4 +1,6 @@
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,8 +13,6 @@ public class Drinks {
     private int rating; // Out of 5, for example
     private int sweetness; // Scale of 1 to 5 (or any range you prefer)
     private DrinkType type; // Enum for Drip, Espresso, Tea
-
-    public static List<Drinks> allDrinks = new ArrayList<>();
 
     // Constructor
     public Drinks(int id, String name, Map<String, Double> ingredients, String recipe, double price, int rating, int sweetness, DrinkType type) {
@@ -90,12 +90,39 @@ public class Drinks {
         this.type = type;
     }
 
-    public static List<Drinks> getAllDrinks() {
-        return allDrinks;
+    public static List<Drinks> getDrinksFromDatabase(Connection connection) throws SQLException {
+        List<Drinks> drinks = new ArrayList<>();
+        String sql = "SELECT id, name, price, rating, sweetness, drink_type FROM drinks"; // Adjust query as needed
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double price = resultSet.getDouble("price");
+                int rating = resultSet.getInt("rating");
+                int sweetness = resultSet.getInt("sweetness");
+                String typeStr = resultSet.getString("drink_type");
+                DrinkType type = DrinkType.valueOf(typeStr);
+
+                Map<String, Double> ingredients = getDrinkIngredientsFromDatabase(connection, id);
+                drinks.add(new Drinks(id, name, ingredients, "", price, rating, sweetness, type)); // Add ingredients
+            }
+        }
+        return drinks;
     }
 
-    public static void addDrink(Drinks drink) {
-        allDrinks.add(drink);
+    private static Map<String, Double> getDrinkIngredientsFromDatabase(Connection connection, int drinkId) throws SQLException {
+        Map<String, Double> ingredients = new HashMap<>();
+        String sql = "SELECT ingredient_name, quantity FROM drink_ingredients WHERE drink_id = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, drinkId);
+            try(ResultSet resultSet = statement.executeQuery()){
+                while(resultSet.next()){
+                    ingredients.put(resultSet.getString("ingredient_name"), resultSet.getDouble("quantity"));
+                }
+            }
+        }
+        return ingredients;
     }
 
     public CheckResult canMake(Ingredients allIngredients) {

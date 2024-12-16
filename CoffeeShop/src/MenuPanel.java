@@ -1,5 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -20,9 +23,9 @@ public class MenuPanel extends JPanel implements DrinkListListener{
     public void addDrink(Drinks drink) {  // Modified to prevent duplicates
         if (!drinkPanelMap.containsKey(drink)) {  // Only create a new panel if one doesn't exist
             JPanel drinkPanel = new JPanel(new BorderLayout());
-            drinkPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
             drinkPanelMap.put(drink, drinkPanel);
             add(drinkPanel);
+            drinkPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         }
 
         JPanel drinkPanel = drinkPanelMap.get(drink); // Get the existing panel
@@ -79,21 +82,17 @@ public class MenuPanel extends JPanel implements DrinkListListener{
 
     @Override
     public void onDrinkListUpdated() {
-        // 1. Clear existing drinks from the panel
+    try (Connection connection = DriverManager.getConnection(App.DATABASE_URL, App.DATABASE_USERNAME, App.DATABASE_PASSWORD)) {
         this.removeAll();
-
-        // 2. Get the updated drinks list from CoffeeShopWindow
-        System.out.println("onDrinkListUpdated() called!");
-        List<Drinks> updatedDrinksList = Drinks.getAllDrinks();
-        System.out.println("Updated drinks list size: " + updatedDrinksList.size());
-
-        // 3. Add the updated drinks to the panel
+        List<Drinks> updatedDrinksList = Drinks.getDrinksFromDatabase(connection); // Get from DB
         for (Drinks drink : updatedDrinksList) {
-            this.addDrink(drink); 
+            this.addDrink(drink);
         }
-
-        // 4. Revalidate and repaint the panel
         this.revalidate();
         this.repaint();
-    }
+        } catch (SQLException e) {
+            e.printStackTrace(); //Handle appropriately
+            JOptionPane.showMessageDialog(this, "Error loading drinks from database", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+}
 }

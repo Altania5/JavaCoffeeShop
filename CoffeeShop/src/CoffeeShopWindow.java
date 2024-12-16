@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-class CoffeeShopWindow extends JFrame {
+class CoffeeShopWindow extends JFrame implements DrinkListListener{
 
     public Connection connection;
     private MenuPanel menuPanel;
@@ -23,6 +23,7 @@ class CoffeeShopWindow extends JFrame {
     private List<DrinkListListener> listeners = new ArrayList<>();
 
     public CoffeeShopWindow() {
+        this.addDrinkListListener(this);
         try {
             this.connection = DriverManager.getConnection(App.DATABASE_URL, App.DATABASE_USERNAME, App.DATABASE_PASSWORD);
         } catch (SQLException e) {
@@ -45,8 +46,6 @@ class CoffeeShopWindow extends JFrame {
         drinkPanelMap = new HashMap<>();
         drinksList = new ArrayList<>();
         drinksList = loadDrinksFromDatabase();
-        Drinks.allDrinks.clear();
-        Drinks.allDrinks.addAll(drinksList);
 
         menuPanel = new MenuPanel(ingredients, this);
         addDrinksToMenu();
@@ -453,6 +452,7 @@ class CoffeeShopWindow extends JFrame {
                         int generatedId = generatedKeys.getInt(1);
                         drink.setId(generatedId);
                     }
+                    notifyDrinkListListeners();
                 }
                 //Now call method to insert ingredients
                 addDrinkIngredientsToDatabase(connection, drink.getId(), drink.getIngredients());
@@ -467,6 +467,7 @@ class CoffeeShopWindow extends JFrame {
         } finally {
             connection.setAutoCommit(true);
         }
+
     }
 
     private JPanel createDrinksPanel() {
@@ -497,12 +498,11 @@ class CoffeeShopWindow extends JFrame {
         JPanel drinkBox = new JPanel(new BorderLayout());
         drinkBox.setBorder(BorderFactory.createTitledBorder(drink.getName())); // Drink name as title
     
-    
         JLabel priceLabel = new JLabel("Price: $" + String.format("%.2f", drink.getPrice()));
         JLabel ratingLabel = new JLabel("Rating: " + drink.getRating());
         JLabel sweetnessLabel = new JLabel("Sweetness: " + drink.getSweetness());
         JLabel typeLabel = new JLabel("Type: " + drink.getType());
-    
+        JPanel buttonPanel = new JPanel();
         JPanel detailsPanel = new JPanel(new GridLayout(0, 1)); // Vertical layout for details
         detailsPanel.add(priceLabel);
         detailsPanel.add(ratingLabel);
@@ -512,10 +512,58 @@ class CoffeeShopWindow extends JFrame {
         drinkBox.add(detailsPanel, BorderLayout.CENTER);
     
         JButton editButton = new JButton("Edit");
-        editButton.addActionListener(e -> showEditDrinkDialog(drink)); // Pass the drink object
-        drinkBox.add(editButton, BorderLayout.SOUTH);
+        editButton.addActionListener(e -> showEditDrinkDialog(drink));
+        buttonPanel.add(editButton);
+
+        JButton deleteButton = new JButton("Delete"); 
+        deleteButton.addActionListener(e -> deleteDrink(drink)); 
+        buttonPanel.add(deleteButton);
+
+        drinkBox.add(buttonPanel, BorderLayout.SOUTH);
     
         return drinkBox;
+    }
+
+    private void deleteDrink(Drinks drink) {
+        int option = JOptionPane.showConfirmDialog(this, 
+                "Are you sure you want to delete " + drink.getName() + "?", 
+                "Confirm Deletion", 
+                JOptionPane.YES_NO_OPTION);
+    
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                connection.setAutoCommit(false);
+    
+                String deleteIngredientsSQL = "DELETE FROM drink_ingredients WHERE drink_id = ?";
+                try (PreparedStatement statement = connection.prepareStatement(deleteIngredientsSQL)) {
+                    statement.setInt(1, drink.getId());
+                    statement.executeUpdate();
+                }
+
+                // Delete the drink from the drinks table
+                String deleteDrinkSQL = "DELETE FROM drinks WHERE id = ?";
+                try (PreparedStatement statement = connection.prepareStatement(deleteDrinkSQL)) {
+                    statement.setInt(1, drink.getId());
+                    statement.executeUpdate();
+                }
+                connection.commit(); 
+                refreshDrinksPanel();
+                notifyDrinkListListeners(); 
+            } catch (SQLException e) {
+                try {
+                    connection.rollback(); 
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+                JOptionPane.showMessageDialog(this, "Error deleting drink: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            } finally {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     private void showEditDrinkDialog(Drinks drink) {
@@ -534,31 +582,34 @@ class CoffeeShopWindow extends JFrame {
         // Get the drinksPanel directly from the JTabbedPane
         JTabbedPane tabbedPane = (JTabbedPane) getContentPane().getComponent(0);
     
-        // Get the drinkListPanel from the drinksPanel
-        JPanel drinksPanel = null;
-    for (Component c : tabbedPane.getComponents()) {
-        if ("Drinks".equals(c.getName())) { // Or check if instance of your drinks panel type
-            drinksPanel = (JPanel) c;
-            break;
-        }
-    }
+        // Get the Drinks PANEL first
+        JPanel drinksPanel = (JPanel) tabbedPane.getComponentAt(2); // Drinks is at index 2. Use getComponentAt for correct index access.
     
-        if (drinksPanel  != null) {
-            drinksPanel .removeAll();
-    
-            // Reload drinksList from the database to ensure it's up-to-date
-            drinksList = loadDrinksFromDatabase(); 
-    
-            for (Drinks d : drinksList) {
-                JPanel drinkBox = createDrinkBox(d);
-                drinksPanel.add(drinkBox);
+        // Now find the ScrollPane *inside* the drinksPanel
+        JScrollPane scrollPane = null;
+        for (Component comp : drinksPanel.getComponents()) {
+            if (comp instanceof JScrollPane) {
+                scrollPane = (JScrollPane) comp;
+                break;
             }
-            drinksPanel.revalidate();
-            drinksPanel.repaint();
-            notifyDrinkListListeners();
+        }
+    
+        if (scrollPane != null) { // Make sure you found the ScrollPane!
+            JPanel drinkListPanel = (JPanel) scrollPane.getViewport().getView();
+            drinkListPanel.removeAll();
+    
+            drinksList = loadDrinksFromDatabase();
+    
+            for (Drinks drink : drinksList) {
+                JPanel drinkBox = createDrinkBox(drink);
+                drinkListPanel.add(drinkBox);
+            }
+    
+            drinkListPanel.revalidate();
+            drinkListPanel.repaint();
         } else {
-            // Handle the case where the drinkListPanel is not found
-            System.err.println("Error: drinkListPanel not found in drinksPanel.");
+            System.err.println("JScrollPane not found in drinksPanel!");
+            // Handle the error appropriately (e.g., log, show error message)
         }
     }
 
@@ -582,7 +633,7 @@ class CoffeeShopWindow extends JFrame {
             }
     
             // Now handle ingredients from drinks that might not be in the database
-            for (Drinks drink : Drinks.getAllDrinks()) {
+            for (Drinks drink : Drinks.getDrinksFromDatabase(connection)) {
                 for (Map.Entry<String, Double> entry : drink.getIngredients().entrySet()) {
                     String ingredientName = entry.getKey();
                     if (!ingredients.getIngredientList().containsKey(ingredientName)) { 
@@ -628,5 +679,12 @@ class CoffeeShopWindow extends JFrame {
     public void updateMenu() { 
         menuPanel.updateMenu(ingredients); // Call MenuPanel's updateMenu
     }
+
+    @Override
+public void onDrinkListUpdated() {
+    SwingUtilities.invokeLater(() -> {
+        refreshDrinksPanel();
+    });
+}
     
 }

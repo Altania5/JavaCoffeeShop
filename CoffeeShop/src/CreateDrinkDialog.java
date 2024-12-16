@@ -289,6 +289,7 @@ class CreateDrinkDialog extends JDialog {
             parent.drinksList.add(newDrink);
             parent.updateMenu();
             parent.refreshDrinksPanel(); 
+            parent.notifyDrinkListListeners();
     
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Invalid price. Please enter a valid number.", "Error", JOptionPane.ERROR_MESSAGE);
