@@ -52,6 +52,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         JTabbedPane tabbedPane = new JTabbedPane();
         JPanel inventoryPanel = createInventoryPanel();
         JPanel drinksPanel = createDrinksPanel();
+        AdvancedStatsPanel advancedStatsPanel = new AdvancedStatsPanel(connection);
 
         coffeeLog = createCoffeeLog();
 
@@ -68,6 +69,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         tabbedPane.addTab("Inventory", inventoryPanel);
         tabbedPane.addTab("Drinks", drinksPanel);
         tabbedPane.addTab("Coffee Log", coffeeLog);
+        tabbedPane.addTab("Advanced Stats", advancedStatsPanel);
         add(tabbedPane); // Add tabbedPane to the JFrame
     
         try {

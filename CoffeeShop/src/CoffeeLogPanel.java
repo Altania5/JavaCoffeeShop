@@ -134,18 +134,14 @@ class CoffeeLogPanel extends JPanel {
                 logTimeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
                 logEntryPanel.add(logTimeLabel);
 
-                JLabel detailsLabel = new JLabel(String.format("Espresso: %s | In: %.2f | Grind: %d | Time: %d | Out: %.2f",
-                        espressoType, inWeight, grindSize, extractionTime, outWeight));
+                JLabel detailsLabel = new JLabel(String.format("Espresso: %s | In: %.2f | Grind: %d | Time: %d | Out: %.2f",espressoType, inWeight, grindSize, extractionTime, outWeight));
                 detailsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
                 logEntryPanel.add(detailsLabel);
 
                 logArea.add(logEntryPanel);
                 logArea.add(Box.createRigidArea(new Dimension(0, 5))); // Spacing between logs
 
-                favoriteDrink = drinkCounts.entrySet().stream()
-                    .max(Map.Entry.comparingByValue())
-                    .map(Map.Entry::getKey)
-                    .orElse("-");
+                favoriteDrink = drinkCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse("-");
 
                 if (totalLogs > 0) {
                     int avgTimeOfDayMinutes = totalExtractionTime / totalLogs;

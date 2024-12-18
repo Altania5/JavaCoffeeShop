@@ -1,6 +1,7 @@
 {
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
-        "CoffeeShop/lib/mysql-connector-j-9.1.0.jar"
+        "CoffeeShop/lib/mysql-connector-j-9.1.0.jar",
+        "CoffeeShop/lib/jfreechart-1.5.2/jfreechart-1.5.2.jar"
     ]
 }
