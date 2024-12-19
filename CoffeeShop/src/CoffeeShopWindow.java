@@ -19,6 +19,7 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
     private JTable ingredientTable;
     private JScrollPane ingredientTableScrollPane;
     private IngredientTableModel ingredientTableModel;
+    private AdvancedStatsPanel advancedStatsPanel;
     public List<Drinks> drinksList;
     CoffeeLogPanel coffeeLog;
     private List<DrinkListListener> listeners = new ArrayList<>();
@@ -32,12 +33,9 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         }
 
         ingredients = new Ingredients(connection);
-        
-
+        advancedStatsPanel = new AdvancedStatsPanel(connection);
         ingredientTable = new JTable(); // Create JTable instance only once
         ingredientTableScrollPane = new JScrollPane(ingredientTable);
-        
-        ingredients = new Ingredients(connection);
         ingredientTableModel = new IngredientTableModel(ingredients.getIngredientList()); // Initialize HERE
         ingredientTable.setModel(ingredientTableModel);
         IngredientCellRenderer cellRenderer = new IngredientCellRenderer(ingredientTableModel);
@@ -52,9 +50,9 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
         JTabbedPane tabbedPane = new JTabbedPane();
         JPanel inventoryPanel = createInventoryPanel();
         JPanel drinksPanel = createDrinksPanel();
-        AdvancedStatsPanel advancedStatsPanel = new AdvancedStatsPanel(connection);
 
         coffeeLog = createCoffeeLog();
+        coffeeLog.addCoffeeLoggedListener(advancedStatsPanel::loadAdvancedStats);
 
         menuPanel = new MenuPanel(ingredients, this, tabbedPane, coffeeLog);
         addDrinksToMenu();
@@ -687,7 +685,8 @@ class CoffeeShopWindow extends JFrame implements DrinkListListener{
     }
 
     private CoffeeLogPanel createCoffeeLog() {
-        return new CoffeeLogPanel(connection);
+        CoffeeLogPanel coffeeLogPanel = new CoffeeLogPanel(connection);
+        return coffeeLogPanel;
     }
 
     public CoffeeLogPanel getCoffeeLogPanel() {

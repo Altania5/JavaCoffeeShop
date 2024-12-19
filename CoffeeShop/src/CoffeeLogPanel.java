@@ -7,12 +7,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 class CoffeeLogPanel extends JPanel {
 
     private Connection connection;
     private JPanel logArea; // Changed to JPanel to hold individual log entries
     private JPanel statsPanel;
+    private List<CoffeeLoggedListener> coffeeLoggedListeners = new ArrayList<>();
 
     public CoffeeLogPanel(Connection connection) {
         this.connection = connection;
@@ -61,6 +64,10 @@ class CoffeeLogPanel extends JPanel {
 
             loadCoffeeLog();
 
+            for (CoffeeLoggedListener listener : coffeeLoggedListeners) {
+                listener.onCoffeeLogged();
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error logging coffee to database", "Error", JOptionPane.ERROR_MESSAGE);
@@ -90,13 +97,16 @@ class CoffeeLogPanel extends JPanel {
                 int blondeEspressoGrindSize = 0;
 
             while (resultSet.next()) {
+                
+                String espressoType = resultSet.getString("espresso_type");
 
+                if (!espressoType.equalsIgnoreCase("None")) {
                 totalLogs++;
+                
 
                 String drinkName = resultSet.getString("drink_name");
                 drinkCounts.put(drinkName, drinkCounts.getOrDefault(drinkName, 0) + 1);
                 Timestamp logTime = resultSet.getTimestamp("log_time");
-                String espressoType = resultSet.getString("espresso_type");
                 double inWeight = resultSet.getDouble("in_weight");
                 int grindSize = resultSet.getInt("grind_size");
                 int extractionTime = resultSet.getInt("extraction_time");
@@ -186,11 +196,23 @@ class CoffeeLogPanel extends JPanel {
     
                 statsPanel.revalidate();
                 statsPanel.repaint();
-
             }
+        }
 
         } catch (SQLException e) {
             e.printStackTrace(); // Or handle the exception appropriately
         }
+    }
+
+    public interface CoffeeLoggedListener {
+        void onCoffeeLogged();
+    }
+
+    public void addCoffeeLoggedListener(CoffeeLoggedListener listener) {
+        coffeeLoggedListeners.add(listener);
+    }
+
+    public void removeCoffeeLoggedListener(CoffeeLoggedListener listener) {
+        coffeeLoggedListeners.remove(listener);
     }
 }

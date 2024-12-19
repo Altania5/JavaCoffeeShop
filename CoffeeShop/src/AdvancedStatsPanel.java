@@ -1,12 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -31,8 +27,86 @@ class AdvancedStatsPanel extends JPanel {
         loadAdvancedStats();
     }
 
-    private void loadAdvancedStats() {
+    public double[] analyzeExtractionTime() {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM coffee_log WHERE espresso_type <> 'None'")) {
+
+            List<Double> extractionTimes = new ArrayList<>();
+            while (resultSet.next()) {
+                int extractionTime = resultSet.getInt("extraction_time");
+                extractionTimes.add((double) extractionTime);
+            }
+
+            // Calculate average extraction time
+            double averageExtractionTime = calculateAverage(extractionTimes);
+            System.out.println("Average Extraction Time: " + averageExtractionTime);
+
+            // Calculate extraction time variance
+            double extractionTimeVariance = calculateVariance(extractionTimes);
+            System.out.println("Extraction Time Variance: " + extractionTimeVariance);
+
+            // TODO: Add analysis for correlation with grind size and peak hours
+
+            return new double[]{averageExtractionTime, extractionTimeVariance};
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error analyzing extraction time", "Error", JOptionPane.ERROR_MESSAGE);
+            return new double[]{0, 0};
+        }
+    }
+
+    public double[] analyzeEspressoYield() {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM coffee_log WHERE espresso_type <> 'None'")) {
+
+            List<Double> yieldRatios = new ArrayList<>();
+            while (resultSet.next()) {
+                double inWeight = resultSet.getDouble("in_weight");
+                double outWeight = resultSet.getDouble("out_weight");
+                double yieldRatio = outWeight / inWeight;
+                yieldRatios.add(yieldRatio);
+            }
+
+            // Calculate average yield ratio
+            double averageYieldRatio = calculateAverage(yieldRatios);
+            System.out.println("Average Yield Ratio: " + averageYieldRatio);
+
+            // Calculate yield ratio variance
+            double yieldRatioVariance = calculateVariance(yieldRatios);
+            System.out.println("Yield Ratio Variance: " + yieldRatioVariance);
+
+            // TODO: Add analysis for correlation with grind size and waste reduction
+
+            return new double[]{averageYieldRatio, yieldRatioVariance};
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error analyzing espresso yield", "Error", JOptionPane.ERROR_MESSAGE);
+            return new double[]{0, 0};
+        }
+    }
+
+    private double calculateAverage(List<Double> data) {
+        double sum = 0;
+        for (double value : data) {
+            sum += value;
+        }
+        return sum / data.size();
+    }
+
+    private double calculateVariance(List<Double> data) {
+        double average = calculateAverage(data);
+        double sumOfSquaredDifferences = 0;
+        for (double value : data) {
+            sumOfSquaredDifferences += Math.pow(value - average, 2);
+        }
+        return sumOfSquaredDifferences / data.size();
+    }
+
+    public void loadAdvancedStats() {
         removeAll(); // Clear existing components
+
+        HistogramDataset extractionTimeHistogramDataset = new HistogramDataset();
+        HistogramDataset yieldRatioHistogramDataset = new HistogramDataset();
 
         JTabbedPane tabbedPane = new JTabbedPane();
 
@@ -43,7 +117,10 @@ class AdvancedStatsPanel extends JPanel {
         XYSeriesCollection scatterPlotDataset = new XYSeriesCollection();
 
         try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT * FROM coffee_log")) {
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM coffee_log WHERE espresso_type <> 'None'")) {
+
+            List<Double> extractionTimes = new ArrayList<>();
+            List<Double> yieldRatios = new ArrayList<>();
 
             XYSeries extractionTimeSeries = new XYSeries("Extraction Time vs. Grind Size");
             XYSeries outWeightSeries = new XYSeries("Out Weight vs. Grind Size");
@@ -51,10 +128,13 @@ class AdvancedStatsPanel extends JPanel {
             while (resultSet.next()) {
                 String drinkName = resultSet.getString("drink_name");
                 String espressoType = resultSet.getString("espresso_type");
-                double inWeight = resultSet.getDouble("in_weight");
                 int grindSize = resultSet.getInt("grind_size");
-                int extractionTime = resultSet.getInt("extraction_time");
+                double inWeight = resultSet.getDouble("in_weight");
                 double outWeight = resultSet.getDouble("out_weight");
+                int extractionTime = resultSet.getInt("extraction_time");
+                extractionTimes.add((double) extractionTime);
+                double yieldRatio = outWeight / inWeight;
+                yieldRatios.add(yieldRatio);
 
                 // Add data to datasets
                 barChartDataset.addValue(extractionTime, "Extraction Time", drinkName);
@@ -63,7 +143,7 @@ class AdvancedStatsPanel extends JPanel {
                 } else {
                     pieChartDataset.setValue(drinkName, 1); // Initialize to 1 if it's the first encounter.
                 }
-                histogramDataset.addSeries(espressoType, new double[]{inWeight}, 10); // 10 bins for histogram
+                histogramDataset.addSeries(espressoType, new double[]{outWeight}, 10); // 10 bins for histogram
                 
                 // Add data point only if it doesn't already exist to avoid duplicates
                 boolean pointExists = false;
@@ -80,6 +160,12 @@ class AdvancedStatsPanel extends JPanel {
                     outWeightSeries.add(grindSize, outWeight);
                 }
             }
+
+            double[] extractionTimeArray = extractionTimes.stream().mapToDouble(Double::doubleValue).toArray();
+            double[] yieldRatioArray = yieldRatios.stream().mapToDouble(Double::doubleValue).toArray();
+
+            extractionTimeHistogramDataset.addSeries("Extraction Time", extractionTimeArray, 10); // 10 bins
+            yieldRatioHistogramDataset.addSeries("Yield Ratio", yieldRatioArray, 10);
 
             scatterPlotDataset.addSeries(extractionTimeSeries);
             scatterPlotDataset.addSeries(outWeightSeries);
@@ -100,8 +186,18 @@ class AdvancedStatsPanel extends JPanel {
                 "Drink Popularity", pieChartDataset, true, true, false);
 
         JFreeChart histogram = ChartFactory.createHistogram(
-                "In Weight Distribution", "In Weight", "Frequency", histogramDataset,
+                "Out Weight Distribution", "Out Weight", "Frequency", histogramDataset,
                 PlotOrientation.VERTICAL, true, true, false);
+
+        JFreeChart extractionTimeHistogram = ChartFactory.createHistogram(
+            "Extraction Time Distribution", "Extraction Time", "Frequency", extractionTimeHistogramDataset,
+            PlotOrientation.VERTICAL, true, true, false
+        );
+
+        JFreeChart yieldRatioHistogram = ChartFactory.createHistogram(
+            "Yield Ratio Distribution", "Yield Ratio", "Frequency", yieldRatioHistogramDataset,
+            PlotOrientation.VERTICAL, true, true, false
+        );
 
         // Scatter plot with lines
         XYPlot scatterPlot = new XYPlot();
@@ -145,6 +241,8 @@ class AdvancedStatsPanel extends JPanel {
         tabbedPane.addTab("Pie Chart", new ChartPanel(pieChart));
         tabbedPane.addTab("Histogram", new ChartPanel(histogram));
         tabbedPane.addTab("Scatter Plot", new ChartPanel(scatterPlotChart));
+        tabbedPane.addTab("Extraction Time Analysis", new ChartPanel(extractionTimeHistogram));
+        tabbedPane.addTab("Yield Analysis", new ChartPanel(yieldRatioHistogram));
 
         add(tabbedPane, BorderLayout.CENTER);
 
